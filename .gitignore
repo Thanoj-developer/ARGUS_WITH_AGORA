@@ -16,13 +16,28 @@ PII.json
 *PII*
 *pii*
 
-# Logs
+# Image assets and screenshots
+*.png
+**/*.png
+
+# Logs and system debug files
 *.log
 test_output*.log
-
-# Temporary and IDE folders
 test-results/
 .playwright-mcp/
 .agents/
 .gemini/
 scratch/
+
+# Runtime caches and dynamic JSON outputs
+Controlled_By_LLM/cache_history.json
+Controlled_By_LLM/history.json
+Capturing_State_observation/latest_observation.json
+Storing_Clean_JSON/*.json
+WEBSCRAPING/scraped_products.json
+
+# Temporary text notes
+WEBSCRAPING/output.txt
+WEBSCRAPING/implement.txt
+DOM_ACCESSBILITY/accessbility.txt
+voice/voice_plan.txt

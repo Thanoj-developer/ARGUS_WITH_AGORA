@@ -44,9 +44,7 @@ const AUTO_NAV_KEYWORDS = [
 // ── LLM Classifier ────────────────────────────────────────────────────────────
 
 function getOpenAIClient() {
-  const apiKey =
-    process.env.NVIDIA_API_KEY ||
-    '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';
+  const apiKey = process.env.NVIDIA_API_KEY || '';
   return new OpenAI({
     apiKey,
     baseURL: 'https://integrate.api.nvidia.com/v1',

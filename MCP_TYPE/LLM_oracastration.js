@@ -3,7 +3,7 @@ const path = require('path');
 const https = require('https');
 
 // Hardcoded Nvidia NIM API configuration
-const NVIDIA_API_KEY = process.env.NVIDIA_API_KEY || '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';
+const NVIDIA_API_KEY = process.env.NVIDIA_API_KEY || '';
 const NVIDIA_BASE_URL = 'https://integrate.api.nvidia.com/v1/chat/completions';
 
 const systemPrompt = '';

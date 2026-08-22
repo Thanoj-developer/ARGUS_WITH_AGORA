@@ -1,4 +1,0 @@
-this feature implementing for the web scraping which is useful for the scrape the all the information about the web
-
-example 1 if i want to buy a product under 50,000
-the llm see the data and write playwright commands and start performing according to our requirments

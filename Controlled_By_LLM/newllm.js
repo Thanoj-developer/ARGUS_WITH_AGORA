@@ -106,7 +106,7 @@ function callNvidiaModel(apiKey, model, messages) {
  */
 async function translateInstruction(userTask) {
   loadEnv();
-  const apiKey = process.env.NVIDIA_API_KEY || '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';
+  const apiKey = process.env.NVIDIA_API_KEY || '';
 
   const systemPrompt = getSystemPrompt();
   const messages = Context.getFormattedMessages(systemPrompt, userTask);

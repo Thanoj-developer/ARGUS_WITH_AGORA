@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Nvidia NIM API configuration
-const API_KEY = process.env.NVIDIA_API_KEY || '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';
+const API_KEY = process.env.NVIDIA_API_KEY || '';
 const openai = new OpenAI({
   apiKey: API_KEY,
   baseURL: 'https://integrate.api.nvidia.com/v1',

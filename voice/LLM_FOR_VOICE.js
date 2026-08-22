@@ -1,6 +1,6 @@
 const OpenAI = require('openai');
 
-const fallbackApiKey = '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';
+const fallbackApiKey = '';
 
 function getOpenAIClient() {
   const apiKey = process.env.NVIDIA_API_KEY || fallbackApiKey;

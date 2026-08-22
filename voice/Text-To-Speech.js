@@ -1,5 +1,5 @@
 // NVIDIA NIM / Resemble.AI Chatterbox TTS Integration Helper
-const fallbackApiKey = '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';
+const fallbackApiKey = process.env.NVIDIA_API_KEY || '';
 
 async function synthesizeSpeech(text) {
   const apiKey = process.env.RESEMBLE_API_KEY || process.env.NVIDIA_API_KEY || fallbackApiKey;

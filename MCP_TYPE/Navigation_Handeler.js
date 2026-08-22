@@ -4,7 +4,7 @@ const { listTabs } = require('./Components/Function');
 const { OpenAI } = require('openai');
 
 const openai = new OpenAI({
-  apiKey: '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',
+  apiKey: process.env.NVIDIA_API_KEY || '',
   baseURL: 'https://integrate.api.nvidia.com/v1',
 });
 
