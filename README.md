@@ -1,12 +1,12 @@
-# 👁️ ARGUS: Voice-Controlled AI Web Assistant
+# 👁️ ARGUS: Agora-Powered Voice Web Assistant
 
-ARGUS is an intelligent, voice-controlled web assistant designed to make web browsing and online tasks entirely hands-free. By simply speaking to the assistant, users can command it to navigate websites, search for items, extract information, and automate complex online tasks as if a human helper were operating the browser.
+ARGUS is an intelligent, voice-controlled web assistant designed to make web browsing and online tasks entirely hands-free. Powered by **Agora RTC**, users can command the assistant to navigate websites, search for items, extract information, and automate complex online tasks simply by speaking.
 
 ---
 
 ## 🚀 Key Features
 
-* **🎙️ Natural Voice Control**: Speak commands directly to the assistant and receive spoken, verbal responses in real-time.
+* **🎙️ Agora RTC Real-Time Voice**: Leverages **Agora RTC SDK** for ultra-low latency audio streaming, enabling you to speak commands to the assistant and receive spoken, verbal feedback in real-time.
 * **🤖 Automatic Browser Actions**: Converts spoken commands into precise actions on the screen (such as typing, searching, and clicking).
 * **🧠 Smart Element Finder**: Automatically reads and analyzes the structure of active web pages, focusing only on interactive elements to ensure speed and accuracy.
 * **⚡ Smart Workflow Memory**: Remembers previously executed workflows to speed up repeat tasks and reduce response delays.
@@ -15,13 +15,13 @@ ARGUS is an intelligent, voice-controlled web assistant designed to make web bro
 
 ---
 
-## 📐 How It Works (High-Level Architecture)
+## 📐 How It Works (Agora Integration Architecture)
 
-The assistant operates in a continuous loop of listening, understanding, acting, and speaking:
+The assistant operates in a continuous loop, powered by **Agora RTC** for the audio ingestion and broadcast pipeline:
 
 ```mermaid
 flowchart TD
-    User([🎙️ User Speaks Command]) --> VoiceIn[Voice Receiver]
+    User([🎙️ User Speaks Command]) -->|Agora RTC Audio Stream| VoiceIn[Agora RTC Voice Receiver]
     VoiceIn --> AI_Brain[AI Understanding & Planning Engine]
     
     AI_Brain -->|Reads Page State| PageParser[Web Page Analyzer]
@@ -29,12 +29,15 @@ flowchart TD
     ActionEngine -->|Performs Clicks & Input| WebBrowser[Virtual Browser Session]
     
     WebBrowser -->|Action Result| AI_Brain
-    AI_Brain -->|Speaks Results| VoiceOut[Voice Synthesizer]
-    VoiceOut --> UserFeedback([🔊 Agent Speaks Back to User])
+    AI_Brain -->|Speaks Results| VoiceOut[Agora RTC Voice Broadcaster]
+    VoiceOut -->|Agora RTC Audio Stream| UserFeedback([🔊 Agent Speaks Back to User])
+    
+    style VoiceIn fill:#09f,stroke:#333,stroke-width:2px,color:#fff
+    style VoiceOut fill:#09f,stroke:#333,stroke-width:2px,color:#fff
 ```
 
-### 1. Speak (Listening & Routing)
-You speak a command (e.g., *"Search for a black leather wallet under $50"*). The voice interface captures your audio, translates it, and routes the request to the central AI brain.
+### 1. Speak (Agora RTC Audio Stream In)
+You speak a command (e.g., *"Search for a black leather wallet under $50"*). The **Agora RTC Voice Channel** captures your audio and streams it with sub-second latency to the voice receiver.
 
 ### 2. Think (AI Planning)
 The AI brain processes your request, determines what needs to be done, and breaks down the goal into a series of smaller steps.
@@ -45,8 +48,8 @@ The page analyzer scans the current web page, identifying all links, input field
 ### 4. Act (Execution)
 The action engine executes the clicks, scroll actions, or keyboard entries on the virtual browser screen.
 
-### 5. Respond (Voice Feedback)
-Once the task is complete, the voice synthesizer converts the text result into speech and speaks it back to you.
+### 5. Respond (Agora RTC Audio Stream Out)
+Once the task is complete, the AI response is converted into audio and broadcasted back to you over the **Agora RTC Voice Channel** for real-time verbal feedback.
 
 ---
 
@@ -55,7 +58,7 @@ Once the task is complete, the voice synthesizer converts the text result into s
 For developers working on this project, here is how the modules are organized:
 
 ```bash
-├── voice/                          # Voice receiving, routing, and speech synthesis
+├── voice/                          # Agora RTC voice receiving, routing, and broadcaster
 ├── MCP_TYPE/                       # AI task planning, tool handlers, and navigation controllers
 ├── DOM_ACCESSBILITY/               # Web page analyzer and element parsing system
 ├── Redis_Query_caching/            # Workflow memory and semantic cache engine
@@ -75,9 +78,9 @@ Set up a `.env` file in the root folder with your specific API endpoints and cre
 # Central AI APIs
 AI_API_KEY=your_ai_api_key
 
-# Voice Streaming Credentials
-VOICE_SERVICE_ID=your_voice_service_id
-VOICE_SERVICE_CERTIFICATE=your_voice_service_certificate
+# Agora RTC Voice Credentials
+AGORA_APP_ID=your_agora_app_id
+AGORA_PRIMARY_CERTIFICATE=your_agora_primary_certificate
 
 # Spreadsheet Integrations
 SPREADSHEET_EXPORT_URL=your_spreadsheet_webhook_url
@@ -105,8 +108,8 @@ Start the primary application orchestrator:
 node server.js
 ```
 
-### 4. Launch the Voice Gateway
-In a separate terminal, launch the voice receiver gateway:
+### 4. Launch the Agora Voice Gateway
+In a separate terminal, launch the Agora voice receiver gateway:
 ```bash
 node voice/voice_server.js
 ```
