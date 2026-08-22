@@ -1,109 +1,86 @@
-# 👁️ ARGUS (Advanced RAG & Voice-Controlled Browser Automation)
+# 👁️ ARGUS: Voice-Controlled AI Web Assistant
 
-An advanced, real-time voice-controlled browser automation assistant. ARGUS integrates **Agora RTC Voice Channels**, **Playwright Automation**, **Model Context Protocol (MCP)**, **Semantic Caching**, and **Google Sheets Data Pipelines** into a unified agentic system.
+ARGUS is an intelligent, voice-controlled web assistant designed to make web browsing and online tasks entirely hands-free. By simply speaking to the assistant, users can command it to navigate websites, search for items, extract information, and automate complex online tasks as if a human helper were operating the browser.
 
 ---
 
 ## 🚀 Key Features
 
-* **🎙️ Real-Time Voice Interface**: Live audio streaming via **Agora RTC SDK** to speak instructions to the agent and receive spoken verbal feedback.
-* **🤖 Playwright Browser Automation**: Translates natural language/voice instructions into executable Playwright JS scripts in real-time.
-* **🧬 WAI-ARIA Accessibility-First Parser**: Captures and parses the DOM, filtering out structural clutter to expose only interactive elements (buttons, search boxes, etc.) for high-precision, low-token LLM navigation.
-* **🧩 Model Context Protocol (MCP) Server**: Implements a dedicated MCP server orchestrating human-in-the-loop checks, multi-field form completion, and tool execution.
-* **⚡ Semantic Caching Layer**: Utilizes an in-memory/Redis Jaccard-similarity semantic caching engine to instantly serve previously translated actions, cutting API costs and execution latency.
-* **📊 Google Sheets Data Pipeline**: Automatic LLM-based data cleaning for scraped data, pushing clean JSON payloads directly to Google Sheets via Google Apps Script.
+* **🎙️ Natural Voice Control**: Speak commands directly to the assistant and receive spoken, verbal responses in real-time.
+* **🤖 Automatic Browser Actions**: Converts spoken commands into precise actions on the screen (such as typing, searching, and clicking).
+* **🧠 Smart Element Finder**: Automatically reads and analyzes the structure of active web pages, focusing only on interactive elements to ensure speed and accuracy.
+* **⚡ Smart Workflow Memory**: Remembers previously executed workflows to speed up repeat tasks and reduce response delays.
+* **📊 Spreadsheet Data Exporter**: Automatically cleans and structures gathered web data, saving it directly to cloud spreadsheets for you.
+* **🔒 Human-in-the-Loop Safeguards**: Intercepts critical actions (like making payments or final bookings) to ask for user validation before proceeding.
 
 ---
 
-## 📐 System Architecture
+## 📐 How It Works (High-Level Architecture)
 
-The following diagram illustrates how user voice inputs flow through the system to execute browser actions and return voice feedback:
+The assistant operates in a continuous loop of listening, understanding, acting, and speaking:
 
 ```mermaid
 flowchart TD
-    User([🎙️ User Voice Command]) -->|Agora RTC Channel| VoiceServer[voice_server.js]
-    VoiceServer -->|Audio Stream| LLM_Voice[LLM_FOR_VOICE.js]
-    LLM_Voice -->|Transcribe / Intent Router| Router[RouterLogic.js]
+    User([🎙️ User Speaks Command]) --> VoiceIn[Voice Receiver]
+    VoiceIn --> AI_Brain[AI Understanding & Planning Engine]
     
-    Router -->|If Automation Request| GenAgent[newllm.js / Playwright Agent]
-    Router -->|If General Inquiry| TTS[Text-To-Speech.js]
+    AI_Brain -->|Reads Page State| PageParser[Web Page Analyzer]
+    PageParser -->|Identifies Buttons & Fields| ActionEngine[Action Executor]
+    ActionEngine -->|Performs Clicks & Input| WebBrowser[Virtual Browser Session]
     
-    GenAgent -->|Capture DOM Snapshot| DOMParser[dom_manager.js / Accessibility Engine]
-    DOMParser -->|Filter Actionable Elements| PlaywrightExec[Run_Action_Execution.js]
-    PlaywrightExec -->|Execute Playwright Actions| LiveBrowser[Playwright Browser Instance]
-    
-    LiveBrowser -->|Capture Result & Success| TTS
-    TTS -->|Synthesize Speech| VoiceServer
-    VoiceServer -->|Agora Audio Stream| User
+    WebBrowser -->|Action Result| AI_Brain
+    AI_Brain -->|Speaks Results| VoiceOut[Voice Synthesizer]
+    VoiceOut --> UserFeedback([🔊 Agent Speaks Back to User])
 ```
+
+### 1. Speak (Listening & Routing)
+You speak a command (e.g., *"Search for a black leather wallet under $50"*). The voice interface captures your audio, translates it, and routes the request to the central AI brain.
+
+### 2. Think (AI Planning)
+The AI brain processes your request, determines what needs to be done, and breaks down the goal into a series of smaller steps.
+
+### 3. Parse (Web Page Analysis)
+The page analyzer scans the current web page, identifying all links, input fields, and buttons, discarding background noise to focus only on parts of the page that can be interacted with.
+
+### 4. Act (Execution)
+The action engine executes the clicks, scroll actions, or keyboard entries on the virtual browser screen.
+
+### 5. Respond (Voice Feedback)
+Once the task is complete, the voice synthesizer converts the text result into speech and speaks it back to you.
 
 ---
 
 ## 📂 Project Structure
 
+For developers working on this project, here is how the modules are organized:
+
 ```bash
-├── voice/                          # Agora Voice Interface & TTS Engine
-│   ├── AGORAChannel.js             # Agora connection handler
-│   ├── AutoNavigation.js           # Voice-prompted auto-navigation integration
-│   ├── LLM_FOR_VOICE.js            # LLM interface for processing voice prompts
-│   ├── RouterLogic.js              # Classifies incoming voice intents
-│   ├── Text-To-Speech.js           # Audio synthesis (Nvidia NIM / Resemble.AI)
-│   ├── PublishAUDIO.js             # Audio streaming publisher
-│   ├── receiver.html               # Frontend dashboard for voice status
-│   └── voice_server.js             # Express server hosting the voice websocket gateway
-│
-├── MCP_TYPE/                       # Model Context Protocol & Orchestration
-│   ├── MCP_Server.js               # Main MCP Server instance
-│   ├── LLM_oracastration.js        # Split complex user goals into sub-tasks
-│   ├── LLM_FOR_NAVIGATING.js       # Playwright code generator for page navigation
-│   ├── LLM_FOR_BOOKINGS.js         # Playwright code generator for transaction/booking flows
-│   ├── Navigation_Handeler.js      # Orchestrates browser actions based on LLM outputs
-│   └── HumanInTheLoop.js           # Intercepts critical actions for user validation
-│
-├── DOM_ACCESSBILITY/               # Accessibility Tree & DOM Snapshot Engine
-│   ├── dom_manager.js              # Injects client-side scripts to scan the page
-│   ├── Capturing_DOM_Snapshot.js   # Pulls structural representation of target pages
-│   ├── Extract_Accessbility_roles. # Isolates actionable buttons, inputs, links
-│   └── Run_Action_Execution.js     # Validates and executes Playwright scripts
-│
-├── Redis_Query_caching/            # Semantic Caching Layer
-│   ├── Semantic_Cache.js           # Fallback Jaccard-similarity semantic cache
-│   └── QueryEmbedding.js           # Utility to fetch query embeddings
-│
-├── DATA_Extracting_System/         # Web Scraping & Data Export Pipeline
-│   ├── JSON_TO_GSHEETS.js          # Google Apps Script sheets connector
-│   └── LLM_FOR_DATA_CLEANING.js    # Sanitizes raw scraped HTML into structured JSON
-│
-├── WEBSCRAPING/                    # Scraper Scripts
-│   ├── amazonScraper.js            # Target scraper implementation for Amazon
-│   └── scraper.js                  # Generic scraper launcher
-│
-├── commanding.html                 # Main Admin Web UI dashboard
-├── server.js                       # Primary Web server and browser orchestrator
-└── playwright.config.js            # Playwright testing configuration
+├── voice/                          # Voice receiving, routing, and speech synthesis
+├── MCP_TYPE/                       # AI task planning, tool handlers, and navigation controllers
+├── DOM_ACCESSBILITY/               # Web page analyzer and element parsing system
+├── Redis_Query_caching/            # Workflow memory and semantic cache engine
+├── DATA_Extracting_System/         # Data cleaning and spreadsheet exporter
+├── WEBSCRAPING/                    # Scraper targets and data collection scripts
+├── commanding.html                 # Main admin dashboard interface
+└── server.js                       # Primary application orchestrator
 ```
 
 ---
 
 ## ⚙️ Configuration (.env)
 
-The project uses localized configuration across components. Create a `.env` file in the **root** folder and in **module directories** (e.g., `Controlled_By_LLM/`, `DATA_Extracting_System/`) using the variables below:
+Set up a `.env` file in the root folder with your specific API endpoints and credentials:
 
 ```ini
-# --- LLM API Settings ---
-NVIDIA_API_KEY=your_nvidia_nim_api_key_here
-GEMINI_API_KEY=your_gemini_api_key_here
+# Central AI APIs
+AI_API_KEY=your_ai_api_key
 
-# --- Agora RTC Voice Settings ---
-AGORA_APP_ID=your_agora_app_id_here
-AGORA_PRIMARY_CERTIFICATE=your_agora_primary_certificate_here
+# Voice Streaming Credentials
+VOICE_SERVICE_ID=your_voice_service_id
+VOICE_SERVICE_CERTIFICATE=your_voice_service_certificate
 
-# --- Google Sheets Export Pipeline ---
-GOOGLE_SHEET_API=your_google_sheets_api_key_here
-GOOGLE_SHEETS_WEBAPP_URL=https://script.google.com/macros/s/.../exec
-
-# --- Optional caching ---
-REDIS_URL=redis://localhost:6379
+# Spreadsheet Integrations
+SPREADSHEET_EXPORT_URL=your_spreadsheet_webhook_url
 ```
 
 ---
@@ -116,33 +93,20 @@ Make sure you have Node.js installed, then run:
 npm install
 ```
 
-### 2. Configure Playwright Browsers
-Install the required browser binaries for Playwright:
+### 2. Configure Virtual Browsers
+Initialize the virtual browser execution environment:
 ```bash
 npx playwright install chromium
 ```
 
-### 3. Launch the Backend Server
-Start the browser orchestrator and web admin console:
+### 3. Launch the Application
+Start the primary application orchestrator:
 ```bash
 node server.js
 ```
-*Accessible at `http://localhost:3000` (or the port defined in your configuration).*
 
-### 4. Launch the Voice Gateway Server
-In a separate terminal, launch the Agora voice receiver server:
+### 4. Launch the Voice Gateway
+In a separate terminal, launch the voice receiver gateway:
 ```bash
 node voice/voice_server.js
 ```
-
-### 5. Launch the MCP Server
-To enable advanced orchestration and Human-in-the-Loop workflows, run the MCP instance:
-```bash
-node MCP_TYPE/MCP_Server.js
-```
-
----
-
-## 🛡️ License
-
-This project is licensed under the MIT License. See the LICENSE file for details.
