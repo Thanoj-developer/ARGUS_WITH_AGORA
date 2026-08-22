@@ -1,0 +1,2842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP Developer Console</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 10px;
+            font-family: monospace;
+            background-color: #121212;
+            color: #e0e0e0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .container {
+            display: flex;
+            gap: 12px;
+            flex: 1;
+            min-height: 0;
+        }
+
+        /* TOP NAVBAR */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #1e1e1e;
+            padding: 8px 16px;
+            border: 1px solid #333;
+            border-radius: 6px;
+            box-sizing: border-box;
+            flex-shrink: 0;
+        }
+
+        .nav-brand {
+            font-size: 14px;
+            font-weight: bold;
+            color: #fff;
+            letter-spacing: 1px;
+            font-family: monospace;
+        }
+
+        /* COMMAND PANEL */
+        .command-panel {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-label {
+            font-size: 11px;
+            color: #888;
+            font-weight: bold;
+        }
+
+        .panel-input-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+        }
+
+        .panel-input-container input[type="text"] {
+            width: 250px;
+            padding: 6px 10px;
+            background: #121212;
+            color: #00ffcc;
+            border: 1px solid #444;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            outline: none;
+        }
+
+        .panel-input-container input[type="text"]:focus {
+            border-color: #00ffcc;
+            box-shadow: 0 0 5px rgba(0, 255, 204, 0.3);
+        }
+
+        .args-input-area {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .args-input-area select, .args-input-area input {
+            padding: 5px 8px;
+            background: #121212;
+            color: #fff;
+            border: 1px solid #444;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 11px;
+            width: 140px;
+            outline: none;
+        }
+
+        .args-input-area select:focus, .args-input-area input:focus {
+            border-color: #00ffcc;
+        }
+
+        #runFuncBtn {
+            padding: 6px 14px;
+            background: #00ffcc;
+            color: #121212;
+            border: none;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        #runFuncBtn:hover {
+            background: #00cca3;
+            box-shadow: 0 0 8px rgba(0, 255, 204, 0.4);
+        }
+
+        #orchestrateBtn {
+            padding: 6px 14px;
+            background: rgba(168, 85, 247, 0.15);
+            color: #c084fc;
+            border: 1px solid rgba(168, 85, 247, 0.4);
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        #orchestrateBtn:hover {
+            background: rgba(168, 85, 247, 0.3);
+            box-shadow: 0 0 8px rgba(168, 85, 247, 0.4);
+        }
+
+
+        /* LEFT: Sidebar column of buttons */
+        .controls-sidebar {
+            width: 240px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: #1e1e1e;
+            padding: 10px;
+            border: 1px solid #333;
+            border-radius: 6px;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .controls-sidebar > button, .controls-sidebar > select, .controls-sidebar > input, .controls-sidebar > div > button, .controls-sidebar > div > input {
+            width: 100%;
+            padding: 8px;
+            background: #2b2b2b;
+            color: #fff;
+            border: 1px solid #444;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 11px;
+            box-sizing: border-box;
+        }
+
+        .controls-sidebar > button, .controls-sidebar > div > button {
+            cursor: pointer;
+            text-align: left;
+        }
+
+        .controls-sidebar > button:hover, .controls-sidebar > div > button:hover, .controls-sidebar > select:hover {
+            background: #3a3a3a;
+            border-color: #555;
+        }
+
+        .controls-sidebar > select, .controls-sidebar > input, .controls-sidebar > div > input {
+            outline: none;
+            background: #121212;
+        }
+
+        .controls-sidebar input::placeholder {
+            color: #666;
+        }
+
+        /* Sheets checkbox list grid */
+        .sheets-checkbox-grid {
+            display: none;
+            flex-direction: column;
+            gap: 6px;
+            padding: 8px;
+            background: #121212;
+            border: 1px solid #333;
+            border-radius: 4px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .sheets-checkbox-grid label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 12px;
+            cursor: pointer;
+            user-select: none;
+            padding: 8px 10px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid #333;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .sheets-checkbox-grid label:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: #555;
+        }
+
+        .sheets-checkbox-grid label input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+            cursor: pointer;
+            margin: 0;
+        }
+
+        /* Split Workspace: Left Panel and Right Panel */
+        .workspace {
+            flex: 1;
+            display: flex;
+            gap: 12px;
+            height: 100%;
+        }
+
+        /* Left Panel: Code editor & Logs */
+        .left-workspace {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            height: 100%;
+        }
+
+        /* Right Panel: Screen preview & Data Viewers */
+        .right-workspace {
+            width: 450px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            height: 100%;
+            flex-shrink: 0;
+        }
+
+        textarea.code-editor {
+            width: 100%;
+            height: 60%;
+            background: #181818;
+            color: #e0e0e0;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            outline: none;
+            resize: none;
+            box-sizing: border-box;
+        }
+
+        .terminal {
+            width: 100%;
+            flex: 1;
+            background: #181818;
+            color: #4af626;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 8px;
+            font-family: monospace;
+            font-size: 11px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            box-sizing: border-box;
+        }
+
+        .preview-box {
+            width: 100%;
+            height: 200px;
+            border: 1px solid #333;
+            border-radius: 4px;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .preview-box img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .viewer-box {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            min-height: 0; /* allows flex children to shrink */
+        }
+
+        .viewer-box label {
+            font-size: 10px;
+            font-weight: bold;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .viewer-box textarea {
+            width: 100%;
+            flex: 1;
+            background: #181818;
+            color: #9cdcfe;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 8px;
+            font-family: monospace;
+            font-size: 11px;
+            resize: none;
+            outline: none;
+            box-sizing: border-box;
+        }
+
+        /* Dialog Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1e1e1e;
+            border: 1px solid #444;
+            padding: 15px;
+            border-radius: 6px;
+            width: 400px;
+        }
+
+        .modal-content textarea {
+            width: 100%;
+            height: 80px;
+            background: #121212;
+            color: #fff;
+            border: 1px solid #333;
+            padding: 6px;
+            font-family: monospace;
+            resize: none;
+            outline: none;
+            margin-bottom: 10px;
+            box-sizing: border-box;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .modal-buttons button {
+            padding: 6px 12px;
+            background: #2b2b2b;
+            color: #fff;
+            border: 1px solid #444;
+            border-radius: 4px;
+            font-family: monospace;
+            cursor: pointer;
+        }
+
+        .modal-buttons button:hover {
+            background: #3a3a3a;
+        }
+    </style>
+</head>
+<body>
+    <!-- TOP NAVIGATION BAR -->
+    <div class="navbar">
+        <div class="nav-brand">🛠️ MCP DEVELOPER CONSOLE</div>
+        
+        <!-- COMMAND PALETTE / FUNCTION CALL PANEL -->
+        <div class="command-panel">
+            <span class="panel-label">⚡ RUN FUNCTION:</span>
+            <div class="panel-input-container">
+                <input type="text" id="funcSearchInput" list="functionsList" placeholder="Type or select function... (e.g. scrapePage)">
+                <datalist id="functionsList">
+                    <option value="runAiMode">runAiMode(query)</option>
+                    <option value="executeCode">executeCode(code)</option>
+                    <option value="resetBrowser">resetBrowser(channel)</option>
+                    <option value="fetchScreenshot">fetchScreenshot()</option>
+                    <option value="openLiveBrowser">openLiveBrowser()</option>
+                    <option value="scrapePage">scrapePage()</option>
+                    <option value="cleanScrapedData">cleanScrapedData(scrapedData, commands)</option>
+                    <option value="exportToSheets">exportToSheets(sheetName, cleanData)</option>
+                    <option value="getSheetsList">getSheetsList()</option>
+                    <option value="readSheetsData">readSheetsData(sheetNames)</option>
+                    <option value="connectGoogleSheets">connectGoogleSheets()</option>
+                    <option value="sortSheetData">sortSheetData(sheetName, sortBy, direction)</option>
+                </datalist>
+                
+                <!-- Dynamic Arguments Container -->
+                <div class="args-input-area" id="argsInputArea"></div>
+                
+                <button id="runFuncBtn">RUN</button>
+            </div>
+        </div>
+
+        <!-- ORCHESTRATION MODE BUTTON -->
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <button id="autoNavigationBtn" style="background: linear-gradient(135deg, #8b5cf6, #6366f1); border-color: #7c3aed; color: #fff; padding: 6px 12px; border-radius: 4px; font-family: monospace; font-size: 11px; cursor: pointer; border: 1px solid #7c3aed;">🧭 AUTO NAVIGATION</button>
+            <button id="orchestrateBtn">🔮 ORCHESTRATION</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- LEFT: Control sidebar Stack -->
+        <div class="controls-sidebar">
+            <div style="font-weight: bold; margin-bottom: 2px; font-size: 11px; color: #888;">MCP CONTROLS</div>
+            <button id="aiModeBtn">🤖 WANT TO HANDEL WITH AI</button>
+            <button id="runBtn">▶️ Execute Script</button>
+            <button id="clearBtn">🗑️ Clear Editor</button>
+            
+            <div style="height: 1px; background: #333; margin: 4px 0;"></div>
+            <div style="font-weight: bold; font-size: 10px; color: #888;">BROWSER MANAGER</div>
+            <select id="browserSelect">
+                <option value="chromium">Chromium</option>
+                <option value="chrome">Google Chrome</option>
+                <option value="msedge">Microsoft Edge</option>
+            </select>
+            <button id="resetBtn">🔄 Reset Browser</button>
+            <button id="openLiveBrowserBtn">🌐 Open Live Browser</button>
+            <button id="refreshScreenshotBtn">📸 Refresh Screen</button>
+
+            <!-- Headed Browser Active Tabs Switcher Panel -->
+            <div style="background: rgba(99, 102, 241, 0.04); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 4px; padding: 6px; display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 9px; font-weight: 600; color: #a5b4fc; display: flex; align-items: center; gap: 4px;">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                            <line x1="3" y1="9" x2="21" y2="9" />
+                            <line x1="9" y1="21" x2="9" y2="9" />
+                        </svg>
+                        HEADED BROWSER TABS
+                    </span>
+                    <button id="refreshTabsBtn" style="padding: 2px 4px; font-size: 8px; border-color: rgba(99, 102, 241, 0.4); color: #818cf8; background: rgba(99, 102, 241, 0.05); line-height: 1; width: auto; height: auto; margin: 0;">
+                        Refresh
+                    </button>
+                </div>
+                <div id="activeTabsListContainer" style="display: flex; flex-direction: column; gap: 4px; max-height: 120px; overflow-y: auto; padding: 2px 0;">
+                    <span style="font-size: 9px; color: #888; padding: 2px;">Loading tabs...</span>
+                </div>
+            </div>
+            
+            <div style="height: 1px; background: #333; margin: 4px 0;"></div>
+            <div style="font-weight: bold; font-size: 10px; color: #a855f7;">BROWSER TAB MANAGER</div>
+            <select id="tabManagerModeSelect" style="border-color: rgba(168, 85, 247, 0.4); color: #e9d5ff;">
+                <option value="custom" selected>1 > Specific Number of Tabs</option>
+                <option value="all">2 > Open All Tabs</option>
+            </select>
+            <div id="customTabCountContainer" style="display: block; margin-top: 2px;">
+                <input type="number" id="customTabCountInput" min="1" max="50" value="5" placeholder="Number of tabs (e.g. 5)" style="border-color: rgba(168, 85, 247, 0.3);">
+            </div>
+            
+            <div style="height: 1px; background: #333; margin: 4px 0;"></div>
+            <div style="font-weight: bold; font-size: 10px; color: #34d399;">DATA SCRAPING</div>
+            <button id="scrapeBtn" style="background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); color: #34d399;">📥 Scrape Page Data</button>
+            <div style="font-weight: bold; font-size: 10px; color: #34d399; margin-top: 4px;">MAX LINK SCRAPING:</div>
+            <input type="number" id="maxLinksInput" min="1" max="50" value="10" placeholder="Max valid links (e.g. 10)" style="border-color: rgba(52, 211, 153, 0.3); color: #a7f3d0; background: #121212;">
+            <div style="font-weight: bold; font-size: 10px; color: #34d399; margin-top: 4px;">SAVE JSON AS:</div>
+            <input type="text" id="jsonFileNameInput" placeholder="Save JSON name (e.g. products)..." style="border-color: rgba(52, 211, 153, 0.3); color: #a7f3d0; background: #121212; margin-top: 2px;">
+            <div style="display: flex; gap: 4px; margin-top: 4px;">
+                <button id="getDataBtn" style="flex: 1; background: rgba(16, 185, 129, 0.2); border-color: rgba(16, 185, 129, 0.5); color: #34d399; font-weight: bold;" title="Fast deterministic DOM extraction (0 API calls)">⚡ GET_DATA</button>
+                <button id="cleanDataBtn" style="flex: 1; background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3); color: #60a5fa;" title="LLM-based data cleaning">🧹 GET_CLEAN_DATA</button>
+            </div>
+            
+            <div style="height: 1px; background: #333; margin: 4px 0;"></div>
+            <div style="font-weight: bold; font-size: 10px; color: #888;">GOOGLE SHEETS</div>
+            <button id="connectSheetsBtn" style="background: rgba(59, 130, 246, 0.08); border-color: rgba(59, 130, 246, 0.2); color: #60a5fa;">🔗 Connect Sheets</button>
+            <div class="sheets-checkbox-grid" id="sheetsCheckboxGrid"></div>
+            
+            <input type="text" id="sheetNameInput" placeholder="Tab Name..." value="Scraped Products" style="margin-top: 4px;">
+            <button id="exportSheetsBtn" style="background: rgba(236, 72, 153, 0.1); border-color: rgba(236, 72, 153, 0.3); color: #f472b6;">📤 Export into Sheets</button>
+            
+            <div style="height: 1px; background: #333; margin: 4px 0;"></div>
+            <div style="font-weight: bold; font-size: 10px; color: #888; margin-top: 4px;">LOCAL JSON DATA</div>
+            <button id="connectJsonBtn" style="background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.2); color: #34d399;">🔗 Connect JSON Files</button>
+            <div class="sheets-checkbox-grid" id="jsonCheckboxGrid" style="display: none; margin-top: 4px;"></div>
+            
+            <div style="height: 1px; background: #333; margin: 4px 0;"></div>
+            <button id="clearLogsBtn">🧹 Clear Logs</button>
+        </div>
+
+        <!-- RIGHT: Split workspace layout -->
+        <div class="workspace">
+            <!-- Left panel: Code editor & Logs -->
+            <div class="left-workspace">
+                <textarea class="code-editor" id="codeEditor" placeholder="// Enter or generate Playwright JS code..."></textarea>
+                <div class="terminal" id="terminalLogs">Console logs initialized. Ready.</div>
+            </div>
+
+            <!-- Right panel: Screenshot & Data displays -->
+            <div class="right-workspace">
+                <div class="preview-box">
+                    <img id="screenshotPreview" src="" style="display: none;" alt="Browser Viewport">
+                </div>
+                
+                <div class="viewer-box">
+                    <label>Raw Scraped Data</label>
+                    <textarea id="rawScrapedViewer" readonly placeholder="Raw scraped HTML/DOM widget data will appear here..."></textarea>
+                </div>
+                
+                <div class="viewer-box">
+                    <label>LLM Cleaned JSON</label>
+                    <textarea id="cleanJsonViewer" readonly placeholder="LLM Cleaned structure data will appear here..."></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Prompt Dialog -->
+    <div class="modal" id="promptModal">
+        <div class="modal-content">
+            <div style="margin-bottom: 8px; font-size: 12px; font-weight: bold;">Describe Automation Prompt:</div>
+            <textarea id="promptInput" placeholder="e.g. open amazon and search for trimmers..."></textarea>
+            <div class="modal-buttons">
+                <button id="cancelBtn">Cancel</button>
+                <button id="submitBtn" style="background: #0066cc;">Execute</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Human Prompt Dialog (HITL) -->
+    <div class="modal" id="humanPromptModal" style="z-index: 100001;">
+        <div class="modal-content" style="background: #1e1e1e; border: 1px solid #c084fc; border-radius: 8px; color: #fff; padding: 1.25rem; width: 400px; display: flex; flex-direction: column; gap: 0.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+            <div id="humanPromptTitle" style="font-size: 13px; font-weight: bold; color: #a5b4fc; border-bottom: 1px solid #333; padding-bottom: 0.5rem;">Verification Code Required</div>
+            <div id="humanPromptMessage" style="font-size: 11px; margin-bottom: 4px; color: #ccc; line-height: 1.4;">Please enter the value:</div>
+            <input type="text" id="humanPromptInput" placeholder="Enter value here..." style="width: 100%; padding: 8px; background: #121212; border: 1px solid #444; border-radius: 4px; color: #fff; font-family: monospace; font-size: 12px; box-sizing: border-box; outline: none; border-color: #a855f7;">
+            <div class="modal-buttons" style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px;">
+                <button id="humanPromptCancelBtn" style="background: #2b2b2b; color: #aaa; border: 1px solid #444; padding: 6px 12px; font-size: 11px; border-radius: 4px; cursor: pointer;">Cancel</button>
+                <button id="humanPromptSubmitBtn" style="background: linear-gradient(135deg, #a855f7, #6366f1); border: none; color: #fff; padding: 6px 16px; font-size: 11px; font-weight: bold; border-radius: 4px; cursor: pointer;">Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Option Selection Dialog (HITL) -->
+    <div class="modal" id="optionSelectModal" style="z-index: 100002;">
+        <div class="modal-content" style="background: #1e1e1e; border: 1px solid #34d399; border-radius: 8px; color: #fff; padding: 1.25rem; width: 400px; display: flex; flex-direction: column; gap: 0.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+            <div id="optionSelectTitle" style="font-size: 13px; font-weight: bold; color: #34d399; border-bottom: 1px solid #333; padding-bottom: 0.5rem;">Select Option</div>
+            <div id="optionSelectMessage" style="font-size: 11px; margin-bottom: 4px; color: #ccc; line-height: 1.4;">Please choose one of the options below:</div>
+            
+            <div id="optionSelectContainer" style="display: flex; flex-direction: column; gap: 6px; margin: 6px 0; max-height: 200px; overflow-y: auto; padding-right: 4px;">
+                <!-- Radio options will be dynamically injected here -->
+            </div>
+            
+            <div class="modal-buttons" style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px;">
+                <button id="optionSelectCancelBtn" style="background: #2b2b2b; color: #aaa; border: 1px solid #444; padding: 6px 12px; font-size: 11px; border-radius: 4px; cursor: pointer;">Cancel</button>
+                <button id="optionSelectSubmitBtn" style="background: linear-gradient(135deg, #10b981, #059669); border: none; color: #fff; padding: 6px 16px; font-size: 11px; font-weight: bold; border-radius: 4px; cursor: pointer;">Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Confirmation Dialog (HITL) -->
+    <div class="modal" id="taskConfirmationModal" style="z-index: 100003;">
+        <div class="modal-content" style="background: #1e1e1e; border: 1px solid #38bdf8; border-radius: 8px; color: #fff; padding: 1.25rem; width: 400px; display: flex; flex-direction: column; gap: 0.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+            <div id="taskConfirmationTitle" style="font-size: 13px; font-weight: bold; color: #38bdf8; border-bottom: 1px solid #333; padding-bottom: 0.5rem;">Task Completion Confirmation</div>
+            <div id="taskConfirmationMessage" style="font-size: 11px; margin-bottom: 4px; color: #ccc; line-height: 1.4;">Hey, I have completed the task but I have to know you for my user conformation. Did we finish?</div>
+            
+            <div class="modal-buttons" style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px;">
+                <button id="taskConfirmationNoBtn" style="background: #2b2b2b; color: #aaa; border: 1px solid #444; padding: 6px 16px; font-size: 11px; font-weight: bold; border-radius: 4px; cursor: pointer;">No, Continue</button>
+                <button id="taskConfirmationYesBtn" style="background: linear-gradient(135deg, #0284c7, #0369a1); border: none; color: #fff; padding: 6px 20px; font-size: 11px; font-weight: bold; border-radius: 4px; cursor: pointer;">Yes, Stop</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Booking Completion Dialog -->
+    <div class="modal" id="bookingCompletionModal" style="z-index: 100004;">
+        <div class="modal-content" style="background: #1e1e1e; border: 1px solid #10b981; border-radius: 8px; color: #fff; padding: 1.25rem; width: 400px; display: flex; flex-direction: column; gap: 0.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+            <div id="bookingCompletionTitle" style="font-size: 13px; font-weight: bold; color: #10b981; border-bottom: 1px solid #333; padding-bottom: 0.5rem;">🎉 Purchase/Booking Completed!</div>
+            <div id="bookingCompletionMessage" style="font-size: 11px; margin-bottom: 4px; color: #ccc; line-height: 1.4;">The booking process has completed. Thank you!</div>
+            
+            <div class="modal-buttons" style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px;">
+                <button id="bookingCompletionOkBtn" style="background: linear-gradient(135deg, #10b981, #047857); border: none; color: #fff; padding: 6px 20px; font-size: 11px; font-weight: bold; border-radius: 4px; cursor: pointer;">OK, Awesome</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auto Navigation Flow Modal -->
+    <div class="modal" id="autoNavModal">
+        <div class="modal-content" style="background: #1e1e1e; border: 1px solid #333; border-radius: 8px; width: 950px; max-width: 95%; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; color: #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; padding-bottom: 0.5rem;">
+                <span style="font-weight: bold; font-size: 14px; color: #a5b4fc; display: flex; align-items: center; gap: 6px;">
+                    🧭 AUTO NAVIGATION FLOW & CONTROL PANEL
+                </span>
+                <span id="closeAutoNavBtn" style="cursor: pointer; font-size: 18px; color: #888; transition: color 0.2s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#888'">&times;</span>
+            </div>
+            
+            <!-- Query Input Box & Action buttons -->
+            <div style="display: flex; gap: 6px; width: 100%; align-items: center;">
+                <input type="text" id="autoNavQueryInput" placeholder="Enter auto-navigation query (e.g. click on Continue button)..." style="flex: 1; padding: 8px; background: #121212; border: 1px solid #444; border-radius: 4px; color: #fff; font-family: monospace; font-size: 11px;">
+                <button id="sendAutoNavQueryBtn" style="background: linear-gradient(135deg, #8b5cf6, #6366f1); border-color: #7c3aed; color: #fff; width: auto; padding: 0 16px;">Send</button>
+                <button id="autoNavWakeupBtn" style="background: linear-gradient(135deg, #10b981, #059669); border-color: #059669; color: #fff; width: auto; padding: 0 16px; font-weight: bold; display: flex; align-items: center; gap: 4px;">🚀 Wakeup LLM</button>
+                <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 11px; color: #aaa; padding-left: 4px;">
+                    <input type="checkbox" id="autoWakeupToggle" style="cursor: pointer; width: auto;">
+                    <span style="white-space: nowrap;">Auto Wakeup</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; font-size: 11px; color: #aaa; padding-left: 4px;">
+                    <input type="checkbox" id="autoNavLoopToggle" style="cursor: pointer; width: auto;">
+                    <span style="white-space: nowrap;">Auto-Loop Agent</span>
+                </label>
+            </div>
+
+            <!-- Current Action Indicator -->
+            <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 4px; padding: 6px 10px; font-size: 11px; color: #a5b4fc; display: flex; align-items: center; justify-content: space-between;">
+                <span><strong>Active Action:</strong> <span id="autoNavActionStatus">Capture DOM Snapshot</span></span>
+                <span id="autoNavPipelineStatus" style="font-size: 10px; color: #888;">Ready</span>
+            </div>
+
+            <!-- Split Pane Content -->
+            <div style="display: flex; gap: 1rem; width: 100%;">
+                <!-- Left Pane: Observation Output (Live Response) -->
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 11px; font-weight: bold; color: #a5b4fc;">Observation Output (Live Response):</span>
+                        <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #aaa;">
+                            <span>Show Indexes Limit:</span>
+                            <input type="number" id="autoNavIndexLimit" value="15" min="1" max="1000" style="width: 55px; padding: 2px 4px; background: #121212; border: 1px solid #444; border-radius: 4px; color: #fff; text-align: center; font-size: 11px;">
+                        </div>
+                    </div>
+                    <textarea id="autoNavObservationOutput" readonly style="width: 100%; height: 350px; background: #121212; border: 1px solid #333; border-radius: 4px; padding: 10px; color: #34d399; font-family: monospace; font-size: 11px; box-sizing: border-box; resize: none; overflow-y: auto;" placeholder="Live pipeline output will be displayed here..."></textarea>
+                </div>
+
+                <!-- Right Pane: JSON Command Terminal -->
+                <div style="flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 11px; font-weight: bold; color: #f472b6;">JSON Command Terminal:</span>
+                        <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: #aaa;">
+                            <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                                <input type="checkbox" id="autoNavAutoExecuteCheck" style="cursor: pointer; width: auto;">
+                                <span>Auto Execution</span>
+                            </label>
+                        </div>
+                    </div>
+                    <textarea id="autoNavTerminalInput" style="width: 100%; height: 120px; background: #0c0c0d; border: 1px solid #c084fc; border-radius: 4px; padding: 10px; color: #c084fc; font-family: monospace; font-size: 11px; box-sizing: border-box; resize: none;" placeholder='{&#10;  "index": 3,&#10;  "action": "click"&#10;}'></textarea>
+                    
+                    <button id="executeJsonActionBtn" style="background: linear-gradient(135deg, #ec4899, #d946ef); border-color: #db2777; color: #fff; padding: 8px 16px; font-size: 12px; font-weight: bold; border-radius: 4px; cursor: pointer; transition: opacity 0.2s;" onmouseover="this.style.opacity='0.9'" onmouseout="this.style.opacity='1'">Execute Action</button>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px;">
+                        <span style="font-size: 11px; font-weight: bold; color: #888;">Terminal Execution Logs:</span>
+                        <div id="autoNavTerminalLogs" style="width: 100%; height: 156px; background: #121212; border: 1px solid #333; border-radius: 4px; padding: 8px; font-family: monospace; font-size: 11px; box-sizing: border-box; overflow-y: auto; display: flex; flex-direction: column; gap: 2px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Orchestration Chat Dialog Modal -->
+    <div class="modal" id="orchChatModal">
+        <div class="modal-content" style="width: 450px; height: 500px; display: flex; flex-direction: column; padding: 0; background: #1e1e1e; border: 1px solid #444; overflow: hidden; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);">
+            <!-- Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: #252526; border-bottom: 1px solid #333; flex-shrink: 0;">
+                <div style="font-size: 13px; font-weight: bold; color: #c084fc; display: flex; align-items: center; gap: 6px;">
+                    <span>🔮</span> Orchestration Assistant
+                </div>
+                <button id="orchChatCloseBtn" style="background: none; border: none; color: #aaa; cursor: pointer; font-size: 14px; outline: none;">✕</button>
+            </div>
+            
+            <!-- Message List -->
+            <div id="orchChatMessages" style="flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; background: #121212;">
+                <!-- Initial greeting bubble -->
+                <div style="display: flex; gap: 8px; max-width: 85%;">
+                    <div style="width: 24px; height: 24px; border-radius: 50%; background: #a855f7; display: flex; justify-content: center; align-items: center; font-size: 10px; color: #fff; flex-shrink: 0; font-weight: bold;">AI</div>
+                    <div style="background: #2b2b2b; color: #e0e0e0; font-size: 11px; padding: 8px 12px; border-radius: 4px 12px 12px 12px; line-height: 1.4; word-break: break-word;">
+                        Hello! I am your Orchestration Assistant. Describe the high-level browser automation goal you want to achieve, and I will orchestrate it for you.
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Input Footer -->
+            <div style="padding: 12px; background: #1e1e1e; border-top: 1px solid #333; display: flex; gap: 8px; align-items: center; flex-shrink: 0;">
+                <input type="text" id="orchChatInput" placeholder="Type your orchestration goal..." style="flex: 1; padding: 8px 12px; background: #121212; color: #fff; border: 1px solid #444; border-radius: 4px; font-family: monospace; font-size: 12px; outline: none; border-color: #444;">
+                <label style="display: flex; align-items: center; gap: 6px; font-size: 10px; color: #aaa; cursor: pointer; user-select: none; flex-shrink: 0; font-family: monospace;">
+                    <input type="checkbox" id="orchAutoRunCheck" checked style="width: 13px; height: 13px; cursor: pointer; margin: 0; accent-color: #a855f7;">
+                    <span>Auto Run</span>
+                </label>
+                <button id="orchChatSendBtn" style="padding: 8px 16px; background: #a855f7; color: #fff; border: none; border-radius: 4px; font-family: monospace; font-size: 11px; font-weight: bold; cursor: pointer; transition: all 0.2s ease; outline: none;">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Selectors
+        const aiModeBtn = document.getElementById('aiModeBtn');
+        const runBtn = document.getElementById('runBtn');
+        const autoNavigationBtn = document.getElementById('autoNavigationBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const browserSelect = document.getElementById('browserSelect');
+        const resetBtn = document.getElementById('resetBtn');
+        const openLiveBrowserBtn = document.getElementById('openLiveBrowserBtn');
+        const refreshScreenshotBtn = document.getElementById('refreshScreenshotBtn');
+        const clearLogsBtn = document.getElementById('clearLogsBtn');
+        
+        const scrapeBtn = document.getElementById('scrapeBtn');
+        const getDataBtn = document.getElementById('getDataBtn');
+        const cleanDataBtn = document.getElementById('cleanDataBtn');
+        const sheetNameInput = document.getElementById('sheetNameInput');
+        const exportSheetsBtn = document.getElementById('exportSheetsBtn');
+        
+        const connectSheetsBtn = document.getElementById('connectSheetsBtn');
+        const sheetsCheckboxGrid = document.getElementById('sheetsCheckboxGrid');
+        const connectJsonBtn = document.getElementById('connectJsonBtn');
+        const jsonCheckboxGrid = document.getElementById('jsonCheckboxGrid');
+        const refreshTabsBtn = document.getElementById('refreshTabsBtn');
+        const activeTabsListContainer = document.getElementById('activeTabsListContainer');
+        const orchestrateBtn = document.getElementById('orchestrateBtn');
+
+        const codeEditor = document.getElementById('codeEditor');
+        const terminalLogs = document.getElementById('terminalLogs');
+        const screenshotPreview = document.getElementById('screenshotPreview');
+        const rawScrapedViewer = document.getElementById('rawScrapedViewer');
+        const cleanJsonViewer = document.getElementById('cleanJsonViewer');
+
+        const promptModal = document.getElementById('promptModal');
+        const promptInput = document.getElementById('promptInput');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const submitBtn = document.getElementById('submitBtn');
+
+        const autoNavModal = document.getElementById('autoNavModal');
+        const closeAutoNavBtn = document.getElementById('closeAutoNavBtn');
+        const autoNavQueryInput = document.getElementById('autoNavQueryInput');
+        const sendAutoNavQueryBtn = document.getElementById('sendAutoNavQueryBtn');
+        const autoNavActionStatus = document.getElementById('autoNavActionStatus');
+        const autoNavPipelineStatus = document.getElementById('autoNavPipelineStatus');
+        const autoNavObservationOutput = document.getElementById('autoNavObservationOutput');
+        const autoNavIndexLimit = document.getElementById('autoNavIndexLimit');
+        const autoNavTerminalInput = document.getElementById('autoNavTerminalInput');
+        const executeJsonActionBtn = document.getElementById('executeJsonActionBtn');
+        const autoNavTerminalLogs = document.getElementById('autoNavTerminalLogs');
+        const autoNavAutoExecuteCheck = document.getElementById('autoNavAutoExecuteCheck');
+        const autoNavWakeupBtn = document.getElementById('autoNavWakeupBtn');
+        const autoWakeupToggle = document.getElementById('autoWakeupToggle');
+        const autoNavLoopToggle = document.getElementById('autoNavLoopToggle');
+
+        const orchChatModal = document.getElementById('orchChatModal');
+        const orchChatCloseBtn = document.getElementById('orchChatCloseBtn');
+        const orchChatMessages = document.getElementById('orchChatMessages');
+        const orchChatInput = document.getElementById('orchChatInput');
+        const orchChatSendBtn = document.getElementById('orchChatSendBtn');
+        const orchAutoRunCheck = document.getElementById('orchAutoRunCheck');
+
+        // State trackers
+        let currentRawScrapedData = null;
+        let currentCleanedJson = null;
+        let lastObservedUrl = '';
+
+        // Log utility
+        function log(message, type = 'info') {
+            const time = new Date().toLocaleTimeString();
+            terminalLogs.innerHTML += `\n[${time}] ${message}`;
+            terminalLogs.scrollTop = terminalLogs.scrollHeight;
+        }
+
+        // Preview screenshot utility
+        function updatePreview(base64) {
+            if (base64) {
+                screenshotPreview.src = 'data:image/png;base64,' + base64;
+                screenshotPreview.style.display = 'block';
+            } else {
+                screenshotPreview.style.display = 'none';
+            }
+        }
+
+        // Action Handlers
+        async function executeScript() {
+            const code = codeEditor.value.trim();
+            if (!code) {
+                log('Error: Editor is empty!');
+                return;
+            }
+            log('Executing code on port 3000...');
+            try {
+                const response = await fetch('/api/execute', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    log('Success: ' + (data.result || 'Executed!'));
+                } else {
+                    log('Error: ' + data.error);
+                }
+                updatePreview(data.screenshot);
+            } catch (err) {
+                log('Error: Network failed: ' + err.message);
+            }
+        }
+
+        async function resetBrowser() {
+            const channel = browserSelect.value;
+            log(`Resetting browser to ${channel} on port 3000...`);
+            try {
+                const response = await fetch('/api/reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ channel })
+                });
+                const data = await response.json();
+                if (data.success) {
+                    log(`Browser successfully reset to ${channel}.`);
+                } else {
+                    log('Error: ' + data.error);
+                }
+                updatePreview(data.screenshot);
+            } catch (err) {
+                log('Error: ' + err.message);
+            }
+        }
+
+        async function openLiveBrowser() {
+            log('Sending live browser command to port 3000...');
+            try {
+                const response = await fetch('/api/open-live-browser', { method: 'POST' });
+                const data = await response.json();
+                if (data.success) {
+                    log('Server restarting. Wait for browser window...');
+                } else {
+                    log('Error: ' + data.error);
+                }
+            } catch (err) {
+                log('Server is restarting...');
+            }
+        }
+
+        async function refreshScreen() {
+            try {
+                const response = await fetch('/api/screenshot');
+                const data = await response.json();
+                updatePreview(data.screenshot);
+            } catch (err) {
+                log('Error fetching screenshot: ' + err.message);
+            }
+        }
+
+        // 1. Scrape Page
+        async function scrapePage() {
+            log('Initiating page element scraping on port 3000...');
+            try {
+                const response = await fetch('/api/scrape', { method: 'POST' });
+                const data = await response.json();
+                if (data.success && data.data) {
+                    currentRawScrapedData = data.data;
+                    rawScrapedViewer.value = JSON.stringify(data.data, null, 2);
+                    log(`Successfully scraped ${data.data.itemsCount || 0} raw elements.`, 'success');
+                } else {
+                    log(`Scrape failed: ${data.error || 'No data found'}`);
+                }
+            } catch (err) {
+                log(`Failed to scrape: ${err.message}`);
+            }
+        }
+
+        // 2. Get Clean Data
+        async function cleanScrapedData() {
+            if (!currentRawScrapedData) {
+                log('Error: Run "Scrape Page Data" first to fetch raw elements!');
+                return;
+            }
+
+            const maxLinksVal = parseInt(document.getElementById('maxLinksInput')?.value) || 10;
+            log(`Sending raw scraped elements to LLM (Max valid links: ${maxLinksVal})...`);
+            cleanJsonViewer.value = '';
+
+            try {
+                const response = await fetch('/api/clean-data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        scrapedData: currentRawScrapedData,
+                        commands: [],
+                        maxLinks: maxLinksVal
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server returned status ${response.status}`);
+                }
+
+                // Handle SSE Stream response chunk-by-chunk
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder('utf-8');
+                let accumulatedText = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    accumulatedText += chunk;
+
+                    // Exclude browser padding prefix if present
+                    let displayText = accumulatedText;
+                    if (displayText.startsWith('/*')) {
+                        const endPadding = displayText.indexOf('*/');
+                        if (endPadding !== -1) {
+                            displayText = displayText.substring(endPadding + 2).trim();
+                        }
+                    }
+
+                    // Check for delimiter splitting stream content from JSON payload
+                    if (displayText.includes('__FINAL_DATA__')) {
+                        const parts = displayText.split('__FINAL_DATA__');
+                        const streamText = parts[0].trim();
+                        const finalPayloadStr = parts[1].trim();
+
+                        cleanJsonViewer.value = streamText;
+
+                        try {
+                            const finalJson = JSON.parse(finalPayloadStr);
+                            if (finalJson.success && finalJson.cleanData) {
+                                currentCleanedJson = finalJson.cleanData;
+                                cleanJsonViewer.value = JSON.stringify(finalJson.cleanData, null, 2);
+                                log('Data cleaning completed successfully!', 'success');
+                            } else {
+                                log(`Data cleaning completed with error: ${finalJson.error}`);
+                            }
+                        } catch (e) {
+                            // final JSON payload not completely arrived yet
+                        }
+                    } else {
+                        cleanJsonViewer.value = displayText;
+                    }
+                }
+            } catch (err) {
+                log(`Failed to stream cleaned data: ${err.message}`);
+            }
+        }
+
+        // Fast Deterministic DOM Data Extraction (0 API calls)
+        async function getDomData() {
+            log('Extracting clean structured data via DOM Management & Accessibility Tree...', 'info');
+            cleanJsonViewer.value = '// Extracting records using DOM Management & Accessibility tree...\n// Instant local execution (0 API calls)...';
+
+            const fileName = document.getElementById('jsonFileNameInput')?.value.trim();
+
+            try {
+                const response = await fetch('/api/get-dom-data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ fileName })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server returned status ${response.status}`);
+                }
+
+                const result = await response.json();
+                if (result.success && result.data) {
+                    currentCleanedJson = result.data;
+                    cleanJsonViewer.value = JSON.stringify(result.data, null, 2);
+                    let saveMsg = '';
+                    if (result.savedFile) {
+                        saveMsg = ` and saved to Storing_Clean_JSON/${result.savedFile}.json`;
+                        // Auto-refresh local JSON checklist
+                        connectJsonFiles();
+                    }
+                    log(`Successfully extracted ${result.count} clean records via DOM Management in <50ms!${saveMsg}`, 'success');
+                } else {
+                    throw new Error(result.error || 'DOM extraction failed');
+                }
+            } catch (err) {
+                log(`DOM extraction error: ${err.message}`);
+                cleanJsonViewer.value = `// DOM Extraction error:\n// ${err.message}`;
+            }
+        }
+
+        // 3. Export to Sheets
+        async function exportToSheets() {
+            if (!currentCleanedJson) {
+                log('Error: Run "GET_CLEAN_DATA" first to structure raw elements!');
+                return;
+            }
+
+            const sheetName = sheetNameInput.value.trim() || 'Scraped Products';
+            log(`Exporting data to Google sheet tab "${sheetName}"...`);
+
+            try {
+                const response = await fetch('/api/export-sheets', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sheetName,
+                        cleanData: currentCleanedJson
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    log(`Success: Data successfully written to sheets! Tab: ${sheetName}`, 'success');
+                    if (data.spreadsheetUrl) {
+                        log(`Spreadsheet URL: ${data.spreadsheetUrl}`);
+                    }
+                } else {
+                    log(`Export failed: ${data.error}`);
+                }
+            } catch (err) {
+                log(`Failed to export data: ${err.message}`);
+            }
+        }
+
+        // 4. Connect Sheets & Fetch list of tabs
+        async function connectGoogleSheets() {
+            connectSheetsBtn.disabled = true;
+            connectSheetsBtn.innerText = 'Connecting...';
+            log('Fetching tab names from Google Sheets...');
+
+            try {
+                const response = await fetch('/api/get-sheets', { method: 'POST' });
+                const result = await response.json();
+                if (result.success && result.sheets && result.sheets.length > 0) {
+                    sheetsCheckboxGrid.innerHTML = '';
+                    result.sheets.forEach(sheetName => {
+                        const label = document.createElement('label');
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.value = sheetName;
+                        
+                        label.appendChild(checkbox);
+                        label.appendChild(document.createTextNode(sheetName));
+                        sheetsCheckboxGrid.appendChild(label);
+                    });
+                    sheetsCheckboxGrid.style.display = 'flex';
+                    log(`Loaded ${result.sheets.length} sheet tabs successfully!`, 'success');
+                } else {
+                    log('No tabs found or sheets failed to connect.');
+                }
+            } catch (err) {
+                log(`Failed to connect Google sheets: ${err.message}`);
+            } finally {
+                connectSheetsBtn.disabled = false;
+                connectSheetsBtn.innerText = 'Refresh Tabs';
+            }
+        }
+
+        // 5. Connect JSON Files & Fetch list of files
+        async function connectJsonFiles() {
+            connectJsonBtn.disabled = true;
+            connectJsonBtn.innerText = 'Connecting...';
+            log('Fetching file list from Storing_Clean_JSON...');
+            
+            try {
+                const response = await fetch('/api/list-clean-json');
+                const result = await response.json();
+                
+                if (result.success && result.files && result.files.length > 0) {
+                    jsonCheckboxGrid.innerHTML = '';
+                    result.files.forEach(fileName => {
+                        const label = document.createElement('label');
+                        
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.value = fileName;
+                        checkbox.style.cursor = 'pointer';
+                        checkbox.style.accentColor = '#34d399';
+                        
+                        checkbox.addEventListener('change', async () => {
+                            if (checkbox.checked) {
+                                label.style.borderColor = '#34d399';
+                                label.style.background = 'rgba(52, 211, 153, 0.05)';
+                                
+                                // Fetch data for this JSON file when connected/checked
+                                log(`Connecting and fetching data from local JSON: ${fileName}.json...`, 'info');
+                                try {
+                                    const response = await fetch('/api/read-clean-json', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ files: [fileName] })
+                                    });
+                                    const resData = await response.json();
+                                    if (resData.success && resData.data && resData.data[fileName]) {
+                                        currentCleanedJson = resData.data[fileName];
+                                        cleanJsonViewer.value = JSON.stringify(currentCleanedJson, null, 2);
+                                        log(`Successfully fetched and loaded data from local JSON: ${fileName}.json`, 'success');
+                                    } else {
+                                        log(`Failed to read data from local JSON: ${fileName}.json`, 'error');
+                                    }
+                                } catch (err) {
+                                    log(`Failed to fetch local JSON data: ${err.message}`, 'error');
+                                }
+                            } else {
+                                label.style.borderColor = '';
+                                label.style.background = '';
+                            }
+                        });
+                        
+                        label.appendChild(checkbox);
+                        label.appendChild(document.createTextNode(fileName + '.json'));
+                        jsonCheckboxGrid.appendChild(label);
+                    });
+                    jsonCheckboxGrid.style.display = 'flex';
+                    log(`Loaded ${result.files.length} clean JSON files successfully!`, 'success');
+                } else {
+                    jsonCheckboxGrid.innerHTML = '<span style="font-size: 10px; color: #888; padding: 4px;">No JSON files found.</span>';
+                    jsonCheckboxGrid.style.display = 'flex';
+                    log('No local JSON files found in Storing_Clean_JSON folder.', 'warning');
+                }
+            } catch (err) {
+                log(`Failed to connect JSON list: ${err.message}`, 'error');
+            } finally {
+                connectJsonBtn.disabled = false;
+                connectJsonBtn.innerText = 'Refresh JSON List';
+            }
+        }
+
+        // Tab switcher logic
+        async function loadTabSwitcher() {
+            if (!activeTabsListContainer) return;
+            try {
+                const response = await fetch('/api/list-tabs', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const result = await response.json();
+                if (result.success && result.tabs && result.tabs.length > 0) {
+                    activeTabsListContainer.innerHTML = '';
+                    result.tabs.forEach(tab => {
+                        const tabBtn = document.createElement('button');
+                        tabBtn.style.padding = '8px 10px';
+                        tabBtn.style.fontSize = '12px';
+                        tabBtn.style.lineHeight = '1.3';
+                        tabBtn.style.border = '1px solid';
+                        tabBtn.style.borderRadius = '4px';
+                        tabBtn.style.cursor = 'pointer';
+                        tabBtn.style.display = 'flex';
+                        tabBtn.style.flexDirection = 'column';
+                        tabBtn.style.gap = '4px';
+                        tabBtn.style.textAlign = 'left';
+                        tabBtn.style.width = '100%';
+                        tabBtn.style.overflow = 'hidden';
+                        tabBtn.style.textOverflow = 'ellipsis';
+                        tabBtn.style.whiteSpace = 'nowrap';
+                        tabBtn.style.background = tab.isActive ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255,255,255,0.02)';
+                        tabBtn.style.borderColor = tab.isActive ? '#818cf8' : '#333';
+                        tabBtn.style.color = tab.isActive ? '#a5b4fc' : '#888';
+
+                        const titleSpan = document.createElement('span');
+                        titleSpan.style.display = 'block';
+                        titleSpan.style.fontWeight = 'bold';
+                        titleSpan.style.color = tab.isActive ? '#fff' : '#ccc';
+                        titleSpan.style.overflow = 'hidden';
+                        titleSpan.style.textOverflow = 'ellipsis';
+                        titleSpan.style.whiteSpace = 'nowrap';
+                        titleSpan.style.width = '100%';
+                        titleSpan.innerText = tab.title || '(No Title)';
+
+                        const urlSpan = document.createElement('span');
+                        urlSpan.style.display = 'block';
+                        urlSpan.style.fontSize = '10px';
+                        urlSpan.style.color = '#666';
+                        urlSpan.style.overflow = 'hidden';
+                        urlSpan.style.textOverflow = 'ellipsis';
+                        urlSpan.style.whiteSpace = 'nowrap';
+                        urlSpan.style.width = '100%';
+                        urlSpan.innerText = tab.url;
+
+                        tabBtn.appendChild(titleSpan);
+                        tabBtn.appendChild(urlSpan);
+
+                        tabBtn.addEventListener('click', async () => {
+                            tabBtn.disabled = true;
+                            titleSpan.innerText = 'Switching...';
+                            try {
+                                const switchResponse = await fetch('/api/switch-tab', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ index: tab.index })
+                                });
+                                const switchResult = await switchResponse.json();
+                                if (switchResult.success) {
+                                    log(`[Tabs] ${switchResult.message}`, 'success');
+                                }
+                            } catch (e) {
+                                log(`[Tabs] Failed to switch tab: ${e.message}`, 'error');
+                            } finally {
+                                loadTabSwitcher();
+                            }
+                        });
+
+                        activeTabsListContainer.appendChild(tabBtn);
+                    });
+
+                    // Check for active tab url change to refresh auto-navigation modal
+                    const activeTab = result.tabs.find(t => t.isActive);
+                    if (activeTab && typeof autoNavModal !== 'undefined') {
+                        const isModalActive = autoNavModal.classList.contains('active');
+                        if (isModalActive) {
+                            if (lastObservedUrl && lastObservedUrl !== activeTab.url) {
+                                lastObservedUrl = activeTab.url;
+                                log(`[Auto Navigation] Live URL change detected: ${activeTab.url}. Refreshing DOM snapshot...`, 'info');
+                                runAutoNavigationPipeline(true);
+                            } else if (!lastObservedUrl) {
+                                lastObservedUrl = activeTab.url;
+                            }
+                        }
+                    }
+                } else {
+                    activeTabsListContainer.innerHTML = '<span style="font-size: 9px; color: #888; padding: 2px;">No active tabs.</span>';
+                }
+            } catch (err) {
+                activeTabsListContainer.innerHTML = `<span style="font-size: 9px; color: #f87171; padding: 2px;">Error.</span>`;
+            }
+        }
+
+        // Initialize tab switcher and set interval
+        loadTabSwitcher();
+        setInterval(loadTabSwitcher, 2000);
+
+        // Auto Navigation pipeline logic
+        let lastPipelineResult = null;
+
+        function appendAutoNavLog(text) {
+            const time = new Date().toLocaleTimeString();
+            autoNavObservationOutput.value += `[${time}] ${text}\n`;
+            autoNavObservationOutput.scrollTop = autoNavObservationOutput.scrollHeight;
+        }
+
+        function renderAutoNavOutput() {
+            if (!lastPipelineResult) return;
+            const limit = parseInt(autoNavIndexLimit.value, 10) || 15;
+            const { elementsList, selectorMap } = lastPipelineResult;
+
+            let output = `--- DOM accessibility snapshot ---\n`;
+            output += `Status    : "SUCCESS"\n\n`;
+            output += `--- ACCESSIBILITY TREE EXTRACTED ---\n`;
+            output += JSON.stringify(elementsList.slice(0, limit), null, 2);
+            if (elementsList.length > limit) {
+                output += `\n... (+ ${elementsList.length - limit} more elements)`;
+            }
+            output += `\n\n--- ASSIGNED SELECTOR INDEX MAP ---\n`;
+            
+            const selectorKeys = Object.keys(selectorMap);
+            const limitedSelectorMap = {};
+            selectorKeys.slice(0, limit).forEach(k => {
+                limitedSelectorMap[k] = selectorMap[k];
+            });
+            output += JSON.stringify(limitedSelectorMap, null, 2);
+            if (selectorKeys.length > limit) {
+                output += `\n... (+ ${selectorKeys.length - limit} more selectors)`;
+            }
+
+            const logPrefix = autoNavObservationOutput.value.split('--- DOM accessibility snapshot ---')[0];
+            autoNavObservationOutput.value = logPrefix + output;
+            autoNavObservationOutput.scrollTop = autoNavObservationOutput.scrollHeight;
+        }
+
+        async function runAutoNavigationPipeline(isInternal = false) {
+            autoNavObservationOutput.value = '';
+            autoNavPipelineStatus.innerText = 'In Progress...';
+            lastPipelineResult = null;
+            
+            try {
+                // Step 1: Capture DOM Snapshot
+                autoNavActionStatus.innerText = 'Capture DOM Snapshot';
+                appendAutoNavLog('[Step 1/3] Initiating Capture DOM Snapshot...');
+                appendAutoNavLog('Requesting DOM snapshot from browser...');
+                
+                const snapResponse = await fetch('/api/dom-action', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'captureDomSnapshot' })
+                });
+                const snapResult = await snapResponse.json();
+                if (!snapResult.success) {
+                    throw new Error(snapResult.error || 'Failed to capture DOM snapshot');
+                }
+                const tree = snapResult.result || {};
+                const nodeCount = tree.children ? tree.children.length : 0;
+                appendAutoNavLog(`DOM Snapshot captured successfully. Got ${nodeCount} top-level nodes.`);
+
+                // Step 2: Extract Accessibility Roles
+                autoNavActionStatus.innerText = 'Extract Accessibility Roles';
+                appendAutoNavLog('[Step 2/3] Extracting Accessibility Roles...');
+                const rolesResponse = await fetch('/api/dom-action', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'extractAccessibilityRoles' })
+                });
+                const rolesResult = await rolesResponse.json();
+                if (!rolesResult.success) {
+                    throw new Error(rolesResult.error || 'Failed to extract accessibility roles');
+                }
+                const rolesData = rolesResult.result || {};
+                const elementsList = rolesData.elements || [];
+                appendAutoNavLog(`Accessibility roles filtered. Found ${elementsList.length} interactive elements.`);
+
+                // Step 3: Assign Selector Indices
+                autoNavActionStatus.innerText = 'Assign Selector Indices';
+                appendAutoNavLog('[Step 3/3] Assigning Selector Indices automatically...');
+                const indicesResponse = await fetch('/api/dom-action', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'assignSelectorIndices' })
+                });
+                const indicesResult = await indicesResponse.json();
+                if (!indicesResult.success) {
+                    throw new Error(indicesResult.error || 'Failed to assign selector indices');
+                }
+                const indexed = indicesResult.result || {};
+                const elements = indexed.elements || [];
+                const selectorMap = indexed.selectorMap || {};
+                appendAutoNavLog(`Selector indices assigned. Mapped ${Object.keys(selectorMap).length} interactive targets.`);
+
+                // Store cache result for dynamic slicing
+                lastPipelineResult = { elementsList, selectorMap, isPurchaseComplete: tree.isPurchaseComplete };
+
+                // Display final output in Observation Output
+                autoNavActionStatus.innerText = 'Idle';
+                autoNavPipelineStatus.innerText = 'Completed';
+                
+                appendAutoNavLog('Auto navigation pipeline completed successfully!', 'success');
+                renderAutoNavOutput();
+
+                if (!isInternal && autoWakeupToggle && autoWakeupToggle.checked) {
+                    appendTerminalLog('[Auto Wakeup] DOM refreshed. Invoking LLM in 50ms...', 'info');
+                    setTimeout(() => {
+                        executeAgentStep();
+                    }, 50);
+                }
+            } catch (err) {
+                autoNavActionStatus.innerText = 'Error';
+                autoNavPipelineStatus.innerText = 'Failed';
+                appendAutoNavLog(`Pipeline Failed: ${err.message}`);
+                autoNavObservationOutput.value += `\nError executing auto navigation pipeline:\n${err.stack || err.message}`;
+                autoNavObservationOutput.scrollTop = autoNavObservationOutput.scrollHeight;
+            }
+        }
+
+        // Close modal handlers
+        closeAutoNavBtn.addEventListener('click', () => {
+            autoNavModal.classList.remove('active');
+        });
+        
+        let originalUserGoal = '';
+        let isAgentRunning = false;
+        let hasConfirmedForCurrentState = false;
+
+        function detectCompletionKeywords(elements) {
+            if (!elements || !Array.isArray(elements)) return false;
+            
+            const completionKeywords = [
+                'place your order',
+                'place order',
+                'confirm order',
+                'confirm purchase',
+                'complete order',
+                'complete purchase',
+                'pay now',
+                'buy now',
+                'make payment',
+                'complete checkout',
+                'submit order',
+                'order now'
+            ];
+            
+            return elements.some(el => {
+                const name = (el.name || '').toLowerCase();
+                const role = (el.role || '').toLowerCase();
+                if (role === 'button' || role === 'link') {
+                    return completionKeywords.some(keyword => name.includes(keyword));
+                }
+                return false;
+            });
+        }
+
+        async function executeAgentStep() {
+            if (isAgentRunning) return;
+            const goal = originalUserGoal || autoNavQueryInput.value.trim();
+            if (!goal) {
+                appendTerminalLog('[Agent] Error: No query goal has been set. Please enter a query first.', 'error');
+                return;
+            }
+            originalUserGoal = goal;
+
+            // 1. Check for purchase/booking completion in current tab title, URL, or page body text
+            const isPurchaseComplete = (lastPipelineResult && lastPipelineResult.isPurchaseComplete);
+            
+            let activeTabTitle = '';
+            let activeTabUrl = '';
+            try {
+                const tabsRes = await fetch('/api/list-tabs', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+                const tabsData = await tabsRes.json();
+                if (tabsData.success && tabsData.tabs) {
+                    const activeTab = tabsData.tabs.find(t => t.isActive);
+                    if (activeTab) {
+                        activeTabTitle = activeTab.title || '';
+                        activeTabUrl = activeTab.url || '';
+                    }
+                }
+            } catch (err) {
+                console.error('[Agent Completion Check] Failed to query tab list:', err);
+            }
+
+            const titleLower = activeTabTitle.toLowerCase();
+            const urlLower = activeTabUrl.toLowerCase();
+            const completionKeywords = [
+                'thank-you',
+                'thankyou',
+                'order-received',
+                'checkout/complete',
+                'booking-confirmed'
+            ];
+            
+            const matchesUrlOrTitle = completionKeywords.some(keyword => titleLower.includes(keyword) || urlLower.includes(keyword));
+
+            if (isPurchaseComplete || matchesUrlOrTitle) {
+                if (!hasConfirmedForCurrentState) {
+                    appendTerminalLog('[Agent] PAUSED: Order/booking completion page detected. Requesting final review...', 'info');
+                    isAgentRunning = true;
+                    autoNavWakeupBtn.disabled = true;
+                    autoNavWakeupBtn.innerText = 'Reviewing...';
+
+                    const confirmed = await new Promise((resolve) => {
+                        showTaskConfirmationModal('🎉 Purchase/Booking Completed Successfully!', 
+                            'The product/booking has been successfully completed. Did we finish the process successfully?', 
+                            (val) => {
+                                resolve(val);
+                            }
+                        );
+                    });
+                    
+                    hasConfirmedForCurrentState = true;
+                    
+                    if (confirmed) {
+                        appendTerminalLog('🎉 [Agent] SUCCESS: Task complete confirmed by user. Stopping execution.', 'success');
+                        isAgentRunning = false;
+                        autoNavWakeupBtn.disabled = false;
+                        autoNavWakeupBtn.innerText = '🚀 Wakeup LLM';
+                        return;
+                    } else {
+                        appendTerminalLog('[Agent] Incomplete. Resuming execution loop...', 'info');
+                    }
+                }
+            }
+
+            // Pause and check for order completion elements in the current page snapshot before querying LLM
+            if (lastPipelineResult && lastPipelineResult.elementsList && detectCompletionKeywords(lastPipelineResult.elementsList)) {
+                if (!hasConfirmedForCurrentState) {
+                    appendTerminalLog('[Agent] PAUSED: Final order placement/checkout elements detected. Requesting user confirmation...', 'info');
+                    isAgentRunning = true;
+                    autoNavWakeupBtn.disabled = true;
+                    autoNavWakeupBtn.innerText = 'Confirming...';
+
+                    const confirmed = await new Promise((resolve) => {
+                        showTaskConfirmationModal('🎉 Final Checkout Confirmation', 
+                            'Hey, I have completed the task but I have to know you for my user conformation. Did we finish?', 
+                            (val) => {
+                                resolve(val);
+                            }
+                        );
+                    });
+                    
+                    hasConfirmedForCurrentState = true;
+                    
+                    if (confirmed) {
+                        appendTerminalLog('[Agent] SUCCESS: Task complete confirmed by user. Stopping execution.', 'success');
+                        isAgentRunning = false;
+                        autoNavWakeupBtn.disabled = false;
+                        autoNavWakeupBtn.innerText = '🚀 Wakeup LLM';
+                        return;
+                    } else {
+                        appendTerminalLog('[Agent] Task incomplete. Resuming execution loop...', 'info');
+                    }
+                }
+            }
+
+            isAgentRunning = true;
+            autoNavWakeupBtn.disabled = true;
+            autoNavWakeupBtn.innerText = 'Agent Active...';
+
+            appendTerminalLog(`[Agent] Step Wakeup - Goal: "${goal}"`, 'info');
+            appendTerminalLog('[Agent] Analyzing current page context...', 'info');
+
+            try {
+                // 1. Query the LLM backend with the current AXTree & original goal
+                const response = await fetch('/api/auto-navigate-query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: goal })
+                });
+                const result = await response.json();
+                
+                if (!result.success || !result.action) {
+                    throw new Error(result.error || 'Failed to retrieve model action.');
+                }
+
+                appendTerminalLog('[Agent] LLM resolved next step.', 'success');
+                autoNavTerminalInput.value = result.action;
+
+                // 2. Parse the action to check for terminal states ("done" or "none")
+                let actionData;
+                try {
+                    actionData = JSON.parse(result.action);
+                } catch (e) {
+                    appendTerminalLog(`[Agent] Syntax Error parsing LLM JSON: ${result.action}`, 'error');
+                    isAgentRunning = false;
+                    autoNavWakeupBtn.disabled = false;
+                    autoNavWakeupBtn.innerText = '🚀 Wakeup LLM';
+                    return;
+                }
+
+                // Normalize and search for done/none/otp_prompt in actionData
+                let actionsList = [];
+                if (actionData.actions && Array.isArray(actionData.actions)) {
+                    actionsList = actionData.actions;
+                } else if (actionData.action) {
+                    actionsList = [actionData];
+                }
+
+                const doneAction = actionsList.find(a => a.action === 'done');
+                if (doneAction) {
+                    appendTerminalLog(`[Agent] Goal Completed! Reason: ${doneAction.reason || 'No reason provided.'}`, 'success');
+                    isAgentRunning = false;
+                    autoNavWakeupBtn.disabled = false;
+                    autoNavWakeupBtn.innerText = '🚀 Wakeup LLM';
+                    return;
+                }
+
+                const noneAction = actionsList.find(a => a.action === 'none');
+                if (noneAction) {
+                    appendTerminalLog(`[Agent] Halted: ${noneAction.reason || 'No match found.'}`, 'error');
+                    isAgentRunning = false;
+                    autoNavWakeupBtn.disabled = false;
+                    autoNavWakeupBtn.innerText = '🚀 Wakeup LLM';
+                    return;
+                }
+
+                const otpAction = actionsList.find(a => a.action === 'otp_prompt');
+                const humanAction = actionsList.find(a => a.action === 'human_prompt');
+                const optionSelectAction = actionsList.find(a => a.action === 'option_select_prompt');
+                
+                if (otpAction || humanAction) {
+                    const targetAction = otpAction || humanAction;
+                    const label = targetAction.action === 'otp_prompt' ? 'OTP Verification Code' : targetAction.name;
+                    const modalTitle = targetAction.action === 'otp_prompt' ? '🔑 OTP / 2FA Verification Required' : '📝 Missing Information Required';
+                    
+                    appendTerminalLog(`[Agent] PAUSED: "${label}" Required. Prompting user...`, 'info');
+                    
+                    // We wait for the user to submit input in the custom styled modal!
+                    const userInput = await new Promise((resolve) => {
+                        showHumanPromptModal(modalTitle, `The automation requires input for field: "${label}". Please enter the value below:`, (val) => {
+                            resolve(val);
+                        });
+                    });
+                    
+                    if (userInput === null || userInput.trim() === '') {
+                        appendTerminalLog('[Agent] Halted: Custom prompt cancelled or empty.', 'error');
+                        isAgentRunning = false;
+                        autoNavWakeupBtn.disabled = false;
+                        autoNavWakeupBtn.innerText = '🚀 Wakeup LLM';
+                        return;
+                    }
+                    
+                    const rawVal = userInput.trim();
+                    const numericValue = /^\d+$/.test(rawVal) ? parseInt(rawVal, 10) : rawVal;
+                    // Automatically generate the fill JSON and update the UI input field
+                    const generatedAction = {
+                        index: targetAction.index,
+                        value: numericValue
+                    };
+                    autoNavTerminalInput.value = JSON.stringify(generatedAction, null, 2);
+                    
+                    // Replace actionData with our generatedAction so the pipeline executes it immediately
+                    actionData = generatedAction;
+                    actionsList = [generatedAction];
+                } else if (optionSelectAction) {
+                    appendTerminalLog(`[Agent] PAUSED: Option Selection Required. Prompting user...`, 'info');
+                    
+                    // We wait for the user to submit selection in the custom styled modal!
+                    const selectedIndex = await new Promise((resolve) => {
+                        showOptionSelectModal('📝 Select Option', 'The automation requires you to select one of the choices below:', optionSelectAction.options, (val) => {
+                            resolve(val);
+                        });
+                    });
+                    
+                    if (selectedIndex === null) {
+                        appendTerminalLog('[Agent] Halted: Option selection cancelled.', 'error');
+                        isAgentRunning = false;
+                        autoNavWakeupBtn.disabled = false;
+                        autoNavWakeupBtn.innerText = '🚀 Wakeup LLM';
+                        return;
+                    }
+                    
+                    // Automatically generate the click JSON and update the UI input field
+                    const generatedAction = {
+                        index: selectedIndex,
+                        action: "click"
+                    };
+                    autoNavTerminalInput.value = JSON.stringify(generatedAction, null, 2);
+                    
+                    // Replace actionData with our generatedAction so the pipeline executes it immediately
+                    actionData = generatedAction;
+                    actionsList = [generatedAction];
+                }
+
+                // Check if any action in the batch is a fill action containing a placeholder value
+                const hasPlaceholder = actionsList.some(a => a.action === 'fill' && 
+                    (typeof a.value === 'string') && 
+                    (a.value.includes('YOUR_') || a.value.toLowerCase().includes('your input') || a.value.includes('PLACEHOLDER')));
+
+                if (hasPlaceholder) {
+                    appendTerminalLog('[Agent] PAUSED: Input details required.', 'info');
+                    appendTerminalLog(`[Agent] Action needs data: Please replace placeholder values with your actual text in the JSON Command Terminal, then click "Execute Action".`, 'info');
+                    
+                    isAgentRunning = false;
+                    autoNavWakeupBtn.disabled = false;
+                    autoNavWakeupBtn.innerText = '🚀 Wakeup LLM';
+                    return;
+                }
+
+                // 3. Execute the click/fill command on the browser
+                if (actionData.actions && Array.isArray(actionData.actions)) {
+                    appendTerminalLog(`[Agent] Executing batch of ${actionData.actions.length} actions...`, 'info');
+                } else {
+                    const resolvedAct = actionData.action || (actionData.value !== undefined ? 'fill' : 'click');
+                    appendTerminalLog(`[Agent] Executing action: "${resolvedAct}" on index: ${actionData.index}...`, 'info');
+                }
+                const runResponse = await fetch('/api/dom-action', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'runClickOrFill',
+                        params: actionData
+                    })
+                });
+                const runResult = await runResponse.json();
+                
+                if (runResult.success) {
+                    const msg = runResult.result?.message || 'Action executed successfully.';
+                    appendTerminalLog(`[Agent] Success: ${msg}`, 'success');
+
+                    // Clear command box
+                    autoNavTerminalInput.value = '';
+                    hasConfirmedForCurrentState = false;
+
+                    // 4. Wait for page load/redirect, then capture the fresh page tree
+                    appendTerminalLog('[Agent] Waiting 2000ms for page to stabilize...', 'info');
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    
+                    // Check if the action we just executed is a task completion action (e.g. clicked "Place your order")
+                    // We must do this before fetching the fresh snapshot to preserve the selectorMap context!
+                    if (isTaskCompletionAction(actionData)) {
+                        appendTerminalLog('[Agent] PAUSED: Final order placement/checkout action detected. Requesting user confirmation...', 'info');
+                        
+                        const confirmed = await new Promise((resolve) => {
+                            showTaskConfirmationModal('🎉 Task Completion Confirmation', 
+                                'Hey, I have completed the task but I have to know you for my user conformation. Did we finish?', 
+                                (val) => {
+                                    resolve(val);
+                                }
+                            );
+                        });
+                        
+                        if (confirmed) {
+                            appendTerminalLog('[Agent] SUCCESS: Task complete confirmed by user. Stopping execution.', 'success');
+                            isAgentRunning = false;
+                            autoNavWakeupBtn.disabled = false;
+                            autoNavWakeupBtn.innerText = '🚀 Wakeup LLM';
+                            return;
+                        } else {
+                            appendTerminalLog('[Agent] Task incomplete. Resuming execution loop...', 'info');
+                        }
+                    }
+
+                    appendTerminalLog('[Agent] Fetching fresh DOM snapshot & AXTree...', 'info');
+                    await runAutoNavigationPipeline(true);
+
+                    // 5. If Auto-Loop checkbox is checked, run the next step automatically!
+                    if (autoNavLoopToggle.checked) {
+                        appendTerminalLog('[Agent] Auto-Loop checked. Scheduling next step...', 'info');
+                        isAgentRunning = false;
+                        setTimeout(() => {
+                            executeAgentStep();
+                        }, 500);
+                    } else {
+                        appendTerminalLog('[Agent] Step complete. Paused. Click Wakeup LLM to continue.', 'info');
+                        isAgentRunning = false;
+                        autoNavWakeupBtn.disabled = false;
+                        autoNavWakeupBtn.innerText = '🚀 Wakeup LLM';
+                    }
+                } else {
+                    appendTerminalLog(`[Agent] Execution Failed: ${runResult.error || 'Unknown execution error'}`, 'error');
+                    isAgentRunning = false;
+                    autoNavWakeupBtn.disabled = false;
+                    autoNavWakeupBtn.innerText = '🚀 Wakeup LLM';
+                }
+            } catch (err) {
+                appendTerminalLog(`[Agent] Error: ${err.message}`, 'error');
+                isAgentRunning = false;
+                autoNavWakeupBtn.disabled = false;
+                autoNavWakeupBtn.innerText = '🚀 Wakeup LLM';
+            }
+        }
+
+        autoNavWakeupBtn.addEventListener('click', () => {
+            executeAgentStep();
+        });
+
+        sendAutoNavQueryBtn.addEventListener('click', async () => {
+            const query = autoNavQueryInput.value.trim();
+            if (!query) return;
+
+            // Local Intercept for testing: "what is the data present at index <N>"
+            const matchIndex = query.match(/what is the data present at index (\d+)/i);
+            if (matchIndex) {
+                const indexNum = parseInt(matchIndex[1], 10);
+                appendTerminalLog(`[Query Box] Local intercept: Retrieving data for index ${indexNum}...`, 'info');
+                
+                if (lastPipelineResult && lastPipelineResult.selectorMap && lastPipelineResult.selectorMap[indexNum]) {
+                    const el = lastPipelineResult.selectorMap[indexNum];
+                    const details = `\n--- RETRIEVED ELEMENT AT INDEX ${indexNum} ---\n` +
+                                    `Role      : "${el.role}"\n` +
+                                    `Name      : "${el.name || ''}"\n` +
+                                    `Selector  : "${el.selector}"\n` +
+                                    `PlayCode  : "${el.playCode}"\n` +
+                                    `Priority  : "${el.priority}"\n`;
+                    
+                    autoNavObservationOutput.value += details;
+                    autoNavObservationOutput.scrollTop = autoNavObservationOutput.scrollHeight;
+                    appendTerminalLog(`[Query Box] Success: Retrieved index ${indexNum} data!`, 'success');
+                } else {
+                    autoNavObservationOutput.value += `\n[Error] Element at index ${indexNum} was not found in the current selector map.\n`;
+                    autoNavObservationOutput.scrollTop = autoNavObservationOutput.scrollHeight;
+                    appendTerminalLog(`[Query Box] Failed: Index ${indexNum} not found in active map`, 'error');
+                }
+                
+                autoNavQueryInput.value = '';
+                return;
+            }
+
+            // Save query goal
+            originalUserGoal = query;
+            hasConfirmedForCurrentState = false;
+
+            appendTerminalLog(`[Query Box] Sending instruction to NIM LLM: "${query}"...`, 'info');
+            sendAutoNavQueryBtn.disabled = true;
+            sendAutoNavQueryBtn.innerText = 'Sending...';
+            autoNavQueryInput.disabled = true;
+
+            try {
+                const response = await fetch('/api/auto-navigate-query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                });
+                const result = await response.json();
+                
+                if (result.success && result.action) {
+                    let actionData = null;
+                    try { actionData = JSON.parse(result.action); } catch(e) {}
+
+                    if (actionData && (actionData.action === 'otp_prompt' || actionData.action === 'human_prompt')) {
+                        const label = actionData.action === 'otp_prompt' ? 'OTP Verification Code' : actionData.name;
+                        const modalTitle = actionData.action === 'otp_prompt' ? '🔑 OTP / 2FA Verification Required' : '📝 Missing Information Required';
+                        
+                        showHumanPromptModal(modalTitle, `The automation requires input for field: "${label}". Please enter the value below:`, (userInput) => {
+                            if (!userInput) {
+                                appendTerminalLog('[Human Prompt] User cancelled the prompt. Loop paused.', 'error');
+                                return;
+                            }
+                            
+                            // Create a clean fill action using the user's input!
+                            const rawVal = userInput.trim();
+                            const numericValue = /^\d+$/.test(rawVal) ? parseInt(rawVal, 10) : rawVal;
+                            const fillAction = {
+                                index: actionData.index,
+                                value: numericValue
+                            };
+                            
+                            autoNavTerminalInput.value = JSON.stringify(fillAction, null, 2);
+                            lastExecutedJsonStr = ''; // clear tracker
+                            appendTerminalLog(`[Human Prompt] Received input. Executing action...`, 'success');
+                            triggerTerminalAction();
+                        });
+                        
+                        autoNavQueryInput.value = '';
+                        return;
+                    } else if (actionData && actionData.action === 'option_select_prompt') {
+                        showOptionSelectModal('📝 Select Option', 'The automation requires you to select one of the choices below:', actionData.options, (selectedIndex) => {
+                            if (selectedIndex === null) {
+                                appendTerminalLog('[Option Selection] User cancelled the prompt. Loop paused.', 'error');
+                                return;
+                            }
+                            
+                            // Create a clean click action using the user's selection!
+                            const clickAction = {
+                                index: selectedIndex,
+                                action: "click"
+                            };
+                            
+                            autoNavTerminalInput.value = JSON.stringify(clickAction, null, 2);
+                            lastExecutedJsonStr = ''; // clear tracker
+                            appendTerminalLog(`[Option Selection] Received selection. Executing action...`, 'success');
+                            triggerTerminalAction();
+                        });
+                        
+                        autoNavQueryInput.value = '';
+                        return;
+                    }
+
+                    appendTerminalLog('[Query Box] NIM LLM resolved next browser action successfully!', 'success');
+                    autoNavTerminalInput.value = result.action;
+                    autoNavQueryInput.value = '';
+                    autoNavTerminalInput.dispatchEvent(new Event('input'));
+                } else {
+                    appendTerminalLog(`[Query Box] NIM LLM failed: ${result.error || 'Failed to generate action JSON'}`, 'error');
+                }
+            } catch (err) {
+                appendTerminalLog(`[Query Box] Connection Error: ${err.message}`, 'error');
+            } finally {
+                sendAutoNavQueryBtn.disabled = false;
+                sendAutoNavQueryBtn.innerText = 'Send';
+                autoNavQueryInput.disabled = false;
+            }
+        });
+
+        // Event listeners for index limit controls
+        autoNavIndexLimit.addEventListener('change', renderAutoNavOutput);
+        autoNavIndexLimit.addEventListener('input', renderAutoNavOutput);
+
+        // Execute JSON action terminal controls
+        let autoExecTimeout = null;
+        let lastExecutedJsonStr = '';
+
+        async function triggerTerminalAction() {
+            const rawText = autoNavTerminalInput.value.trim();
+            if (!rawText) return;
+
+            // Try parsing
+            let actionData;
+            try {
+                actionData = JSON.parse(rawText);
+            } catch (err) {
+                // Ignore parsing errors while typing, don't flood logs
+                return;
+            }
+
+            // Verify action index keys
+            if (actionData.index === undefined && !actionData.actions) return;
+
+            // Prevent duplicate auto-executions of the same string
+            const jsonStr = JSON.stringify(actionData);
+            if (jsonStr === lastExecutedJsonStr) return;
+            lastExecutedJsonStr = jsonStr;
+
+            const actionType = actionData.action || (actionData.value !== undefined ? 'fill' : 'click');
+            appendTerminalLog(`[Auto Execute] Valid JSON detected. Executing action: "${actionType}" on index: ${actionData.index}...`, 'info');
+            executeJsonActionBtn.disabled = true;
+            executeJsonActionBtn.innerText = 'Executing...';
+
+            try {
+                const response = await fetch('/api/dom-action', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'runClickOrFill',
+                        params: actionData
+                    })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    const msg = result.result?.message || 'Action executed successfully.';
+                    appendTerminalLog(`[Auto Execute] Success: ${msg}`, 'success');
+                    
+                    // Clear input text area on successful auto-execution
+                    autoNavTerminalInput.value = '';
+                    lastExecutedJsonStr = ''; // reset tracker
+                    
+                    // Automatically trigger a refresh of the DOM snapshot so indices update!
+                    appendTerminalLog('[Auto Execute] Triggering auto-refresh of DOM snapshot...', 'info');
+                    runAutoNavigationPipeline(true);
+                } else {
+                    appendTerminalLog(`[Auto Execute] Failed: ${result.error || 'Unknown error'}`, 'error');
+                }
+            } catch (err) {
+                appendTerminalLog(`[Auto Execute] Request Error: ${err.message}`, 'error');
+            } finally {
+                executeJsonActionBtn.disabled = false;
+                executeJsonActionBtn.innerText = 'Execute Action';
+            }
+        }
+
+        autoNavTerminalInput.addEventListener('input', () => {
+            if (autoNavAutoExecuteCheck.checked) {
+                if (autoExecTimeout) clearTimeout(autoExecTimeout);
+                autoExecTimeout = setTimeout(() => {
+                    triggerTerminalAction();
+                }, 800); // 800ms debounce
+            }
+        });
+
+        executeJsonActionBtn.addEventListener('click', async () => {
+            const rawText = autoNavTerminalInput.value.trim();
+            if (!rawText) return;
+
+            appendTerminalLog('[Command Terminal] Parsing JSON input...', 'info');
+            let actionData;
+            try {
+                actionData = JSON.parse(rawText);
+            } catch (err) {
+                appendTerminalLog(`[Command Terminal] Syntax Error: Invalid JSON input - ${err.message}`, 'error');
+                return;
+            }
+
+            appendTerminalLog(`[Command Terminal] Sending action: "${actionData.action || 'click'}" on index: ${actionData.index}...`, 'info');
+            executeJsonActionBtn.disabled = true;
+            executeJsonActionBtn.innerText = 'Executing...';
+
+            try {
+                const response = await fetch('/api/dom-action', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'runClickOrFill',
+                        params: actionData
+                    })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    const msg = result.result?.message || 'Action executed successfully.';
+                    appendTerminalLog(`[Command Terminal] Success: ${msg}`, 'success');
+                    
+                    // Clear input text area on successful manual execution too
+                    autoNavTerminalInput.value = '';
+                    lastExecutedJsonStr = ''; // reset tracker
+                    
+                    appendTerminalLog('[Command Terminal] Triggering auto-refresh of DOM snapshot...', 'info');
+                    runAutoNavigationPipeline(true);
+                } else {
+                    appendTerminalLog(`[Command Terminal] Failed: ${result.error || 'Unknown error'}`, 'error');
+                }
+            } catch (err) {
+                appendTerminalLog(`[Command Terminal] Request Error: ${err.message}`, 'error');
+            } finally {
+                executeJsonActionBtn.disabled = false;
+                executeJsonActionBtn.innerText = 'Execute Action';
+            }
+        });
+
+        function appendTerminalLog(message, type = 'info') {
+            const time = new Date().toLocaleTimeString();
+            const logLine = document.createElement('div');
+            logLine.style.fontFamily = 'monospace';
+            logLine.style.fontSize = '11px';
+            logLine.style.lineHeight = '1.4';
+            
+            if (type === 'error') {
+                logLine.style.color = '#f87171'; // Red for errors
+            } else if (type === 'success') {
+                logLine.style.color = '#34d399'; // Emerald Green for success
+            } else {
+                logLine.style.color = '#38bdf8'; // Sky Blue for regular commands/info
+            }
+            
+            logLine.innerText = `[${time}] ${message}`;
+            autoNavTerminalLogs.appendChild(logLine);
+            autoNavTerminalLogs.scrollTop = autoNavTerminalLogs.scrollHeight;
+        }
+
+        // Event listeners
+        runBtn.addEventListener('click', executeScript);
+        autoNavigationBtn.addEventListener('click', async () => {
+            log('[Auto Navigation] Requesting auto navigation...', 'info');
+            try {
+                const response = await fetch('/api/auto-navigate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const result = await response.json();
+                if (!result.success) {
+                    if (result.error === 'Page is not selected') {
+                        alert('Page is not selected');
+                    }
+                    log(`[Auto Navigation] Error: ${result.error}`, 'error');
+                } else {
+                    log(`[Auto Navigation] Success: ${result.message}`, 'success');
+                    lastObservedUrl = ''; // reset on open to establish baseline
+                    autoNavModal.classList.add('active');
+                    runAutoNavigationPipeline();
+                }
+            } catch (err) {
+                log(`[Auto Navigation] Failed to trigger auto-navigation: ${err.message}`, 'error');
+            }
+        });
+        resetBtn.addEventListener('click', resetBrowser);
+        openLiveBrowserBtn.addEventListener('click', openLiveBrowser);
+        refreshScreenshotBtn.addEventListener('click', refreshScreen);
+        refreshTabsBtn.addEventListener('click', loadTabSwitcher);
+        
+        scrapeBtn.addEventListener('click', scrapePage);
+        getDataBtn.addEventListener('click', getDomData);
+        cleanDataBtn.addEventListener('click', cleanScrapedData);
+        exportSheetsBtn.addEventListener('click', exportToSheets);
+        connectSheetsBtn.addEventListener('click', connectGoogleSheets);
+        connectJsonBtn.addEventListener('click', connectJsonFiles);
+        
+        // Browser Tab Manager controls
+        const tabManagerSelect = document.getElementById('tabManagerModeSelect');
+        const customTabContainer = document.getElementById('customTabCountContainer');
+        const customTabCountInput = document.getElementById('customTabCountInput');
+        if (tabManagerSelect && customTabContainer) {
+            tabManagerSelect.addEventListener('change', () => {
+                if (tabManagerSelect.value === 'custom') {
+                    customTabContainer.style.display = 'block';
+                } else {
+                    customTabContainer.style.display = 'none';
+                }
+            });
+        }
+        if (customTabCountInput) {
+            customTabCountInput.addEventListener('keydown', async (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const limit = parseInt(customTabCountInput.value);
+                    if (isNaN(limit) || limit < 1) {
+                        log('Error: Please enter a valid number of tabs (1 or more).', 'error');
+                        return;
+                    }
+                    log(`Browser Tab Manager: Max tab limit set to ${limit}. This limit will be applied when you execute a query.`, 'info');
+                }
+            });
+        }
+
+        orchestrateBtn.addEventListener('click', () => {
+            orchChatModal.classList.add('active');
+            orchChatInput.value = '';
+            orchChatInput.focus();
+        });
+
+        orchChatCloseBtn.addEventListener('click', () => {
+            orchChatModal.classList.remove('active');
+        });
+
+        function appendOrchMessage(sender, text) {
+            const bubble = document.createElement('div');
+            bubble.style.display = 'flex';
+            bubble.style.gap = '8px';
+            bubble.style.maxWidth = '85%';
+            
+            if (sender === 'user') {
+                bubble.style.alignSelf = 'flex-end';
+                bubble.style.justifyContent = 'flex-end';
+                bubble.innerHTML = `
+                    <div style="background: #a855f7; color: #fff; font-size: 11px; padding: 8px 12px; border-radius: 12px 12px 4px 12px; line-height: 1.4; word-break: break-word; font-family: monospace;">${text}</div>
+                    <div style="width: 24px; height: 24px; border-radius: 50%; background: #555; display: flex; justify-content: center; align-items: center; font-size: 10px; color: #fff; flex-shrink: 0; font-weight: bold; font-family: monospace;">U</div>
+                `;
+            } else {
+                bubble.innerHTML = `
+                    <div style="width: 24px; height: 24px; border-radius: 50%; background: #a855f7; display: flex; justify-content: center; align-items: center; font-size: 10px; color: #fff; flex-shrink: 0; font-weight: bold; font-family: monospace;">AI</div>
+                    <div style="background: #2b2b2b; color: #e0e0e0; font-size: 11px; padding: 8px 12px; border-radius: 4px 12px 12px 12px; line-height: 1.4; word-break: break-word; font-family: monospace;">${text}</div>
+                `;
+            }
+            
+            orchChatMessages.appendChild(bubble);
+            orchChatMessages.scrollTop = orchChatMessages.scrollHeight;
+        }
+
+        let orchChatHistory = [];
+
+        async function handleOrchChatSend() {
+            const text = orchChatInput.value.trim();
+            if (!text) return;
+            
+            appendOrchMessage('user', text);
+            orchChatInput.value = '';
+            
+            log(`[Orchestrator] Goal submitted: "${text}"`);
+            
+            // Add loading indicator
+            const loadingBubble = document.createElement('div');
+            loadingBubble.id = 'orchChatLoading';
+            loadingBubble.style.display = 'flex';
+            loadingBubble.style.gap = '8px';
+            loadingBubble.style.maxWidth = '85%';
+            loadingBubble.innerHTML = `
+                <div style="width: 24px; height: 24px; border-radius: 50%; background: #a855f7; display: flex; justify-content: center; align-items: center; font-size: 10px; color: #fff; flex-shrink: 0; font-weight: bold; font-family: monospace;">AI</div>
+                <div style="background: #2b2b2b; color: #aaa; font-size: 11px; padding: 8px 12px; border-radius: 4px 12px 12px 12px; line-height: 1.4; font-family: monospace;">Thinking...</div>
+            `;
+            orchChatMessages.appendChild(loadingBubble);
+            orchChatMessages.scrollTop = orchChatMessages.scrollHeight;
+
+            const checkedSheets = Array.from(document.querySelectorAll('#sheetsCheckboxGrid input:checked')).map(cb => cb.value);
+            const checkedJsonFiles = Array.from(document.querySelectorAll('#jsonCheckboxGrid input:checked')).map(cb => cb.value);
+            const tabMode = document.getElementById('tabManagerModeSelect')?.value;
+            const tabLimit = tabMode === 'custom' ? parseInt(document.getElementById('customTabCountInput')?.value) : 999;
+            
+            try {
+                const response = await fetch('/api/orchestrate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: text,
+                        history: orchChatHistory,
+                        selectedSheets: checkedSheets,
+                        selectedJsonFiles: checkedJsonFiles,
+                        maxTabs: tabLimit
+                    })
+                });
+                
+                const data = await response.json();
+                
+                const loader = document.getElementById('orchChatLoading');
+                if (loader) loader.remove();
+                
+                if (data.success && data.reply) {
+                    appendOrchMessage('ai', data.reply);
+                    orchChatHistory.push({ role: 'user', text: text });
+                    orchChatHistory.push({ role: 'assistant', text: data.reply });
+                    
+                    if (data.reply.trim().startsWith('CALL:')) {
+                        const jsonStr = data.reply.trim().substring(5).trim();
+                        try {
+                            const steps = JSON.parse(jsonStr);
+                            if (Array.isArray(steps) && steps.length > 0) {
+                                log(`[Orchestrator] Received ${steps.length} sequential execution steps.`);
+                                
+                                async function executeStepsSequentially(index) {
+                                    if (index >= steps.length) {
+                                        log('[Orchestrator] Sequential automation completed successfully!', 'success');
+                                        return;
+                                    }
+                                    const step = steps[index];
+                                    log(`[Orchestrator] Preparing step ${index + 1}/${steps.length}: "${step.query}"`);
+                                    
+                                    // 1. Auto-fill navbar function search input
+                                    funcSearchInput.value = step.func;
+                                    updateArgsInputs();
+                                    
+                                    // 2. Populate dynamically rendered arguments
+                                    const argContainers = argsInputArea.querySelectorAll('.arg-wrapper');
+                                    if (step.args && Array.isArray(step.args)) {
+                                        step.args.forEach((val, i) => {
+                                            if (argContainers[i]) {
+                                                const input = argContainers[i].querySelector('input, select');
+                                                if (input) input.value = val;
+                                            }
+                                        });
+                                    }
+                                    
+                                    // 3. Execution handling
+                                    if (orchAutoRunCheck.checked) {
+                                        log(`[Orchestrator] Executing step ${index + 1}: "${step.func}" in 1.5 seconds...`);
+                                        setTimeout(async () => {
+                                            try {
+                                                await handleRunFunc();
+                                                log(`[Orchestrator] Step ${index + 1} execution finished. Proceeding...`);
+                                                // Execute next step in sequence
+                                                executeStepsSequentially(index + 1);
+                                            } catch (e) {
+                                                log(`[Orchestrator] Step ${index + 1} failed: ${e.message}`, 'error');
+                                            }
+                                        }, 1500);
+                                    } else {
+                                        log(`[Orchestrator] Auto Run is disabled. Step ${index + 1} loaded. Click RUN manually to advance.`);
+                                    }
+                                }
+                                
+                                // Launch sequence
+                                executeStepsSequentially(0);
+                            }
+                        } catch (err) {
+                            log(`[Orchestrator] Failed to parse sequential JSON commands: ${err.message}`, 'error');
+                        }
+                    }
+                } else {
+                    appendOrchMessage('ai', `Error: ${data.error || 'Failed to get response'}`);
+                }
+            } catch (err) {
+                const loader = document.getElementById('orchChatLoading');
+                if (loader) loader.remove();
+                appendOrchMessage('ai', `Connection Error: ${err.message}`);
+            }
+        }
+
+        orchChatSendBtn.addEventListener('click', handleOrchChatSend);
+        orchChatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                handleOrchChatSend();
+            }
+        });
+        
+        clearBtn.addEventListener('click', () => {
+            codeEditor.value = '';
+            log('Editor cleared.');
+        });
+
+        clearLogsBtn.addEventListener('click', () => {
+            terminalLogs.innerHTML = 'Logs cleared.';
+        });
+
+        // AI Modal Prompt Handlers
+        aiModeBtn.addEventListener('click', () => {
+            promptModal.classList.add('active');
+            promptInput.value = '';
+            promptInput.focus();
+        });
+
+        cancelBtn.addEventListener('click', () => {
+            promptModal.classList.remove('active');
+        });
+
+        submitBtn.addEventListener('click', async () => {
+            let query = promptInput.value.trim();
+            if (!query) return;
+
+            promptModal.classList.remove('active');
+            log(`Processing natural language request: "${query}"...`);
+
+            // Fetch records from selected sheet tabs first
+            const selectedSheets = [];
+            const checkboxes = sheetsCheckboxGrid.querySelectorAll('input[type="checkbox"]:checked');
+            checkboxes.forEach(cb => selectedSheets.push(cb.value));
+
+            let sheetDataContext = '';
+            if (selectedSheets.length > 0) {
+                log(`Retrieving context from checked sheets: ${selectedSheets.join(', ')}...`);
+                try {
+                    const response = await fetch('/api/read-sheets', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ sheetNames: selectedSheets })
+                    });
+                    const result = await response.json();
+                    if (result.success && result.data) {
+                        sheetDataContext = '\n\nConnected Google Sheets Data:\n' + JSON.stringify(result.data, null, 2);
+                        log(`Successfully injected ${selectedSheets.length} sheet contexts!`, 'success');
+                    }
+                } catch (e) {
+                    log(`Failed to read sheet context: ${e.message}`);
+                }
+            }
+
+            // Fetch records from selected JSON files next
+            const selectedJsonFiles = [];
+            const jsonCheckboxes = jsonCheckboxGrid.querySelectorAll('input[type="checkbox"]:checked');
+            jsonCheckboxes.forEach(cb => selectedJsonFiles.push(cb.value));
+
+            let jsonDataContext = '';
+            if (selectedJsonFiles.length > 0) {
+                log(`Retrieving context from checked JSON files: ${selectedJsonFiles.join(', ')}...`);
+                try {
+                    const response = await fetch('/api/read-clean-json', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ files: selectedJsonFiles })
+                    });
+                    const result = await response.json();
+                    if (result.success && result.data) {
+                        jsonDataContext = '\n\nConnected Local JSON Data:\n' + JSON.stringify(result.data, null, 2);
+                        log(`Successfully injected ${selectedJsonFiles.length} JSON contexts!`, 'success');
+                    }
+                } catch (e) {
+                    log(`Failed to read JSON context: ${e.message}`);
+                }
+            }
+
+            // Get Browser Tab Manager count limit
+            const tabMode = document.getElementById('tabManagerModeSelect')?.value;
+            const tabLimit = tabMode === 'custom' ? parseInt(document.getElementById('customTabCountInput')?.value) : 999;
+            const tabLimitContext = `\n\n[Max Tabs Limit]: Open at most ${tabLimit} tab(s) in the headed browser when opening product tabs. Make sure to reflect this limit in any code or function call arguments.`;
+
+            try {
+                const response = await fetch('/api/ai-mode', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query + sheetDataContext + jsonDataContext + tabLimitContext })
+                });
+                const data = await response.json();
+                if (data.success && data.code) {
+                    log('Translation successful.');
+                    codeEditor.value = data.code;
+                    await executeScript();
+                } else {
+                    log('Translation failed: ' + data.error);
+                }
+            } catch (err) {
+                log('Error connecting to translation API: ' + err.message);
+            }
+        });
+
+        // ============================================
+        // FUNCTION RUNNER & PANEL HANDLERS
+        // ============================================
+        const funcSearchInput = document.getElementById('funcSearchInput');
+        const argsInputArea = document.getElementById('argsInputArea');
+        const runFuncBtn = document.getElementById('runFuncBtn');
+
+        const functionDefinitions = {
+            runAiMode: {
+                params: [
+                    { name: 'query', placeholder: 'Prompt Query...', type: 'text', defaultValue: '' }
+                ]
+            },
+            executeCode: {
+                params: [
+                    { name: 'code', placeholder: 'Code editor...', type: 'textarea', useCodeEditor: true }
+                ]
+            },
+            resetBrowser: {
+                params: [
+                    { name: 'channel', placeholder: 'chromium/chrome/msedge', type: 'select', options: ['chromium', 'chrome', 'msedge'], defaultValue: 'chromium' }
+                ]
+            },
+            fetchScreenshot: { params: [] },
+            openLiveBrowser: { params: [] },
+            scrapePage: { params: [] },
+            cleanScrapedData: {
+                params: [
+                    { name: 'scrapedData', placeholder: 'Scraped...', type: 'textarea', useRawScraped: true },
+                    { name: 'commands', placeholder: 'Commands (JSON Array)...', type: 'text', defaultValue: '[]' }
+                ]
+            },
+            exportToSheets: {
+                params: [
+                    { name: 'sheetName', placeholder: 'Sheet name...', type: 'text', defaultValue: 'Scraped Products' },
+                    { name: 'cleanData', placeholder: 'Cleaned JSON...', type: 'textarea', useCleaned: true }
+                ]
+            },
+            getSheetsList: { params: [] },
+            readSheetsData: {
+                params: [
+                    { name: 'sheetNames', placeholder: 'Tabs (JSON Array)...', type: 'text', defaultValue: '[]' }
+                ]
+            },
+            connectGoogleSheets: { params: [] },
+            sortSheetData: {
+                params: [
+                    { name: 'sheetName', placeholder: 'Sheet name...', type: 'text', defaultValue: '' },
+                    { name: 'sortBy', placeholder: 'price or rating', type: 'select', options: ['price', 'rating'], defaultValue: 'price' },
+                    { name: 'direction', placeholder: 'asc or desc', type: 'select', options: ['asc', 'desc'], defaultValue: 'desc' }
+                ]
+            }
+        };
+
+        function updateArgsInputs() {
+            const funcName = funcSearchInput.value.trim();
+            argsInputArea.innerHTML = '';
+            
+            const def = functionDefinitions[funcName];
+            if (!def) return;
+            
+            def.params.forEach(param => {
+                if (param.useCodeEditor) {
+                    const badge = document.createElement('span');
+                    badge.style.fontSize = '9px';
+                    badge.style.color = '#888';
+                    badge.style.background = '#2b2b2b';
+                    badge.style.padding = '3px 6px';
+                    badge.style.borderRadius = '3px';
+                    badge.style.border = '1px solid #444';
+                    badge.innerText = `Auto-fills Code`;
+                    argsInputArea.appendChild(badge);
+                    return;
+                }
+                if (param.useRawScraped) {
+                    const badge = document.createElement('span');
+                    badge.style.fontSize = '9px';
+                    badge.style.color = '#888';
+                    badge.style.background = '#2b2b2b';
+                    badge.style.padding = '3px 6px';
+                    badge.style.borderRadius = '3px';
+                    badge.style.border = '1px solid #444';
+                    badge.innerText = `Auto-fills Scraped`;
+                    argsInputArea.appendChild(badge);
+                    return;
+                }
+                if (param.useCleaned) {
+                    const badge = document.createElement('span');
+                    badge.style.fontSize = '9px';
+                    badge.style.color = '#888';
+                    badge.style.background = '#2b2b2b';
+                    badge.style.padding = '3px 6px';
+                    badge.style.borderRadius = '3px';
+                    badge.style.border = '1px solid #444';
+                    badge.innerText = `Auto-fills Cleaned`;
+                    argsInputArea.appendChild(badge);
+                    return;
+                }
+                
+                if (param.type === 'select') {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'arg-wrapper';
+                    const select = document.createElement('select');
+                    select.id = `param_${param.name}`;
+                    param.options.forEach(opt => {
+                        const option = document.createElement('option');
+                        option.value = opt;
+                        option.text = opt;
+                        if (opt === param.defaultValue) option.selected = true;
+                        select.appendChild(option);
+                    });
+                    wrapper.appendChild(select);
+                    argsInputArea.appendChild(wrapper);
+                } else {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'arg-wrapper';
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.id = `param_${param.name}`;
+                    input.placeholder = param.placeholder;
+                    input.value = param.defaultValue || '';
+                    wrapper.appendChild(input);
+                    argsInputArea.appendChild(wrapper);
+                }
+            });
+        }
+
+        function parseRawCall(str) {
+            const match = str.match(/^([a-zA-Z0-9_]+)\((.*)\)$/);
+            if (!match) return null;
+            
+            const name = match[1];
+            const rawArgs = match[2].trim();
+            
+            if (!rawArgs) {
+                return { name, args: [] };
+            }
+            
+            try {
+                const argsArray = new Function(`return [${rawArgs}];`)();
+                return { name, args: argsArray };
+            } catch (e) {
+                console.error('Failed to parse arguments:', e);
+                return null;
+            }
+        }
+
+        function getActiveTabManagerLimit() {
+            const selectEl = document.getElementById('tabManagerModeSelect');
+            if (selectEl && selectEl.value === 'custom') {
+                const countInput = document.getElementById('customTabCountInput');
+                const count = countInput ? parseInt(countInput.value) : 5;
+                return isNaN(count) || count < 1 ? 5 : count;
+            }
+            return 999; // Open all
+        }
+
+        async function executeDynamicCall(funcName, args) {
+            // Apply user's Browser Tab Manager limit to sortSheetData if not explicitly specified
+            if (funcName === 'sortSheetData' && (!args || args.length < 4)) {
+                const limit = getActiveTabManagerLimit();
+                args = [...(args || []), limit];
+            }
+
+            // Apply user's Max Link Scraping setting to cleanScrapedData if not explicitly specified
+            if (funcName === 'cleanScrapedData' && (!args || args.length < 3)) {
+                const maxL = parseInt(document.getElementById('maxLinksInput')?.value) || 10;
+                args = [args[0] || null, args[1] || [], maxL];
+            }
+
+            log(`Dynamic Call: '${funcName}' with args: ${JSON.stringify(args)}`);
+            try {
+                const response = await fetch('/api/call-function', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ functionName: funcName, args })
+                });
+                const data = await response.json();
+                if (!data.success) {
+                    log(`Error: ${data.error || 'Execution failed'}`);
+                    return;
+                }
+                
+                log(`Success: Function '${funcName}' executed successfully!`);
+                const result = data.result;
+                
+                if (funcName === 'runAiMode') {
+                    codeEditor.value = result;
+                    log('AI Translation complete. Running generated Playwright script...');
+                    await executeScript();
+                } else if (funcName === 'executeCode') {
+                    if (result.success) {
+                        log('Execution Result: ' + (result.result || 'Successful'));
+                    } else {
+                        log('Execution Error: ' + result.error);
+                    }
+                    updatePreview(result.screenshot);
+                } else if (funcName === 'resetBrowser') {
+                    log(`Browser successfully reset.`);
+                    updatePreview(result.screenshot);
+                } else if (funcName === 'fetchScreenshot') {
+                    updatePreview(result.screenshot);
+                } else if (funcName === 'openLiveBrowser') {
+                    log('Server restarting. Opening live browser...');
+                } else if (funcName === 'scrapePage') {
+                    if (result.success && result.data) {
+                        currentRawScrapedData = result.data;
+                        rawScrapedViewer.value = JSON.stringify(result.data, null, 2);
+                        log(`Successfully scraped ${result.data.itemsCount || 0} items!`);
+                    } else {
+                        log('Scrape failed: ' + result.error);
+                    }
+                } else if (funcName === 'cleanScrapedData') {
+                    currentCleanedJson = result;
+                    cleanJsonViewer.value = JSON.stringify(result, null, 2);
+                    log('Data cleaning complete!');
+                } else if (funcName === 'exportToSheets') {
+                    if (result.success) {
+                        log(`Data exported to tab "${sheetNameInput.value}" successfully!`);
+                        if (result.spreadsheetUrl) {
+                            log(`Spreadsheet URL: ${result.spreadsheetUrl}`);
+                        }
+                    } else {
+                        log('Export failed: ' + result.error);
+                    }
+                } else if (funcName === 'getSheetsList' || funcName === 'connectGoogleSheets') {
+                    if (result.success && result.sheets) {
+                        sheetsCheckboxGrid.innerHTML = '';
+                        result.sheets.forEach(sheetName => {
+                            const label = document.createElement('label');
+                            const checkbox = document.createElement('input');
+                            checkbox.type = 'checkbox';
+                            checkbox.value = sheetName;
+                            
+                            label.appendChild(checkbox);
+                            label.appendChild(document.createTextNode(sheetName));
+                            sheetsCheckboxGrid.appendChild(label);
+                        });
+                        sheetsCheckboxGrid.style.display = 'flex';
+                        log(`Loaded ${result.sheets.length} sheet tabs successfully!`);
+                    }
+                } else if (funcName === 'sortSheetData') {
+                    if (result.success) {
+                        log(`[Orchestrator] ${result.message}`, 'success');
+                        if (result.spreadsheetUrl) {
+                            log(`Spreadsheet URL: ${result.spreadsheetUrl}`);
+                        }
+                    } else {
+                        log('Sorting failed: ' + result.error);
+                    }
+                } else if (funcName === 'readSheetsData') {
+                    log('Sheet Data retrieved: ' + JSON.stringify(result.data, null, 2));
+                } else {
+                    log('Result: ' + JSON.stringify(result, null, 2));
+                }
+            } catch (err) {
+                log(`Error: Call failed: ${err.message}`);
+            }
+        }
+
+        async function handleRunFunc() {
+            const val = funcSearchInput.value.trim();
+            if (!val) {
+                log('Error: Function input is empty.');
+                return;
+            }
+            
+            const parsed = parseRawCall(val);
+            if (parsed) {
+                await executeDynamicCall(parsed.name, parsed.args);
+                return;
+            }
+            
+            const def = functionDefinitions[val];
+            if (!def) {
+                log(`Error: Unknown function name or invalid syntax: "${val}"`);
+                return;
+            }
+            
+            const args = [];
+            let validationError = null;
+            
+            for (const param of def.params) {
+                if (param.useCodeEditor) {
+                    const code = codeEditor.value.trim();
+                    if (!code) {
+                        validationError = 'Code editor is empty!';
+                        break;
+                    }
+                    args.push(code);
+                } else if (param.useRawScraped) {
+                    if (!currentRawScrapedData) {
+                        validationError = 'No raw scraped data found! Perform Scrape Page first.';
+                        break;
+                    }
+                    args.push(currentRawScrapedData);
+                } else if (param.useCleaned) {
+                    if (!currentCleanedJson) {
+                        validationError = 'No cleaned JSON data found! Run GET_CLEAN_DATA first.';
+                        break;
+                    }
+                    args.push(currentCleanedJson);
+                } else {
+                    const inputEl = document.getElementById(`param_${param.name}`);
+                    let pVal = inputEl ? inputEl.value : '';
+                    if (param.name === 'commands' || param.name === 'sheetNames') {
+                        try {
+                            pVal = JSON.parse(pVal || '[]');
+                        } catch (e) {
+                            validationError = `Invalid JSON array in field '${param.name}': ${e.message}`;
+                            break;
+                        }
+                    }
+                    args.push(pVal);
+                }
+            }
+            
+            if (validationError) {
+                log(`Error: ${validationError}`);
+                return;
+            }
+            
+            await executeDynamicCall(val, args);
+        }
+
+        funcSearchInput.addEventListener('input', updateArgsInputs);
+        funcSearchInput.addEventListener('change', updateArgsInputs);
+        runFuncBtn.addEventListener('click', handleRunFunc);
+        funcSearchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                handleRunFunc();
+            }
+        });
+
+        // Human Prompt Dialog Setup (HITL)
+        let humanPromptCallback = null;
+        const humanPromptModal = document.getElementById('humanPromptModal');
+        const humanPromptTitle = document.getElementById('humanPromptTitle');
+        const humanPromptMessage = document.getElementById('humanPromptMessage');
+        const humanPromptInput = document.getElementById('humanPromptInput');
+        const humanPromptCancelBtn = document.getElementById('humanPromptCancelBtn');
+        const humanPromptSubmitBtn = document.getElementById('humanPromptSubmitBtn');
+
+        function showHumanPromptModal(title, message, callback) {
+            humanPromptTitle.innerText = title;
+            humanPromptMessage.innerText = message;
+            humanPromptInput.value = '';
+            humanPromptCallback = callback;
+            humanPromptModal.classList.add('active');
+            setTimeout(() => {
+                humanPromptInput.focus();
+            }, 100);
+        }
+
+        humanPromptCancelBtn.addEventListener('click', () => {
+            humanPromptModal.classList.remove('active');
+            if (humanPromptCallback) humanPromptCallback(null);
+            humanPromptCallback = null;
+        });
+
+        humanPromptSubmitBtn.addEventListener('click', () => {
+            const val = humanPromptInput.value.trim();
+            humanPromptModal.classList.remove('active');
+            if (humanPromptCallback) humanPromptCallback(val);
+            humanPromptCallback = null;
+        });
+
+        humanPromptInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                humanPromptSubmitBtn.click();
+            }
+        });
+
+        // Option Selection Dialog Setup (HITL)
+        let optionSelectCallback = null;
+        const optionSelectModal = document.getElementById('optionSelectModal');
+        const optionSelectTitle = document.getElementById('optionSelectTitle');
+        const optionSelectMessage = document.getElementById('optionSelectMessage');
+        const optionSelectContainer = document.getElementById('optionSelectContainer');
+        const optionSelectCancelBtn = document.getElementById('optionSelectCancelBtn');
+        const optionSelectSubmitBtn = document.getElementById('optionSelectSubmitBtn');
+
+        function showOptionSelectModal(title, message, options, callback) {
+            optionSelectTitle.innerText = title;
+            optionSelectMessage.innerText = message;
+            optionSelectContainer.innerHTML = '';
+            optionSelectCallback = callback;
+            
+            options.forEach((opt, idx) => {
+                const label = document.createElement('label');
+                label.style.display = 'flex';
+                label.style.alignItems = 'center';
+                label.style.gap = '8px';
+                label.style.fontSize = '12px';
+                label.style.color = '#e0e0e0';
+                label.style.cursor = 'pointer';
+                label.style.padding = '8px 10px';
+                label.style.background = 'rgba(255, 255, 255, 0.02)';
+                label.style.borderRadius = '4px';
+                label.style.border = '1px solid #333';
+                label.style.transition = 'border-color 0.2s';
+                
+                label.onmouseover = () => label.style.borderColor = '#10b981';
+                label.onmouseout = () => label.style.borderColor = '#333';
+                
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.name = 'hitl_option_choice';
+                radio.value = opt.index;
+                if (idx === 0) radio.checked = true;
+                radio.style.cursor = 'pointer';
+                radio.style.accentColor = '#10b981';
+
+                const span = document.createElement('span');
+                span.innerText = `${idx + 1}> ${opt.name}`;
+                span.style.fontFamily = 'monospace';
+
+                label.appendChild(radio);
+                label.appendChild(span);
+                optionSelectContainer.appendChild(label);
+            });
+
+            optionSelectModal.classList.add('active');
+        }
+
+        optionSelectCancelBtn.addEventListener('click', () => {
+            optionSelectModal.classList.remove('active');
+            if (optionSelectCallback) optionSelectCallback(null);
+            optionSelectCallback = null;
+        });
+
+        optionSelectSubmitBtn.addEventListener('click', () => {
+            const selectedRadio = optionSelectContainer.querySelector('input[name="hitl_option_choice"]:checked');
+            optionSelectModal.classList.remove('active');
+            if (optionSelectCallback) {
+                if (selectedRadio) {
+                    optionSelectCallback(parseInt(selectedRadio.value, 10));
+                } else {
+                    optionSelectCallback(null);
+                }
+            }
+            optionSelectCallback = null;
+        });
+
+        // Task Confirmation Dialog Setup (HITL)
+        let taskConfirmationCallback = null;
+        const taskConfirmationModal = document.getElementById('taskConfirmationModal');
+        const taskConfirmationYesBtn = document.getElementById('taskConfirmationYesBtn');
+        const taskConfirmationNoBtn = document.getElementById('taskConfirmationNoBtn');
+
+        // Booking Completion Dialog Setup
+        const bookingCompletionModal = document.getElementById('bookingCompletionModal');
+        const bookingCompletionOkBtn = document.getElementById('bookingCompletionOkBtn');
+
+        function showBookingCompletionModal(title, message) {
+            document.getElementById('bookingCompletionTitle').innerText = title;
+            document.getElementById('bookingCompletionMessage').innerText = message;
+            bookingCompletionModal.classList.add('active');
+        }
+
+        bookingCompletionOkBtn.addEventListener('click', () => {
+            bookingCompletionModal.classList.remove('active');
+        });
+
+        function showTaskConfirmationModal(title, message, callback) {
+            document.getElementById('taskConfirmationTitle').innerText = title;
+            document.getElementById('taskConfirmationMessage').innerText = message;
+            taskConfirmationCallback = callback;
+            taskConfirmationModal.classList.add('active');
+        }
+
+        taskConfirmationYesBtn.addEventListener('click', () => {
+            taskConfirmationModal.classList.remove('active');
+            if (taskConfirmationCallback) taskConfirmationCallback(true);
+            taskConfirmationCallback = null;
+        });
+
+        taskConfirmationNoBtn.addEventListener('click', () => {
+            taskConfirmationModal.classList.remove('active');
+            if (taskConfirmationCallback) taskConfirmationCallback(false);
+            taskConfirmationCallback = null;
+        });
+
+        function isTaskCompletionAction(actionData) {
+            if (!actionData) return false;
+            
+            let actions = [];
+            if (actionData.actions && Array.isArray(actionData.actions)) {
+                actions = actionData.actions;
+            } else {
+                actions = [actionData];
+            }
+            
+            const completionKeywords = [
+                'place your order',
+                'place order',
+                'confirm order',
+                'confirm purchase',
+                'complete order',
+                'complete purchase',
+                'pay now',
+                'buy now',
+                'make payment',
+                'complete checkout',
+                'submit order',
+                'order now'
+            ];
+            
+            for (const act of actions) {
+                const isClick = act.action === 'click' || (act.action === undefined && act.value === undefined);
+                if (!isClick) continue;
+                
+                const targetIndex = act.index;
+                if (targetIndex !== undefined && lastPipelineResult && lastPipelineResult.selectorMap) {
+                    const el = lastPipelineResult.selectorMap[targetIndex];
+                    if (el) {
+                        const name = (el.name || '').toLowerCase();
+                        const matchesKeyword = completionKeywords.some(keyword => name.includes(keyword));
+                        if (matchesKeyword) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            
+            return false;
+        }
+
+        // Initial setup check
+        refreshScreen();
+        connectJsonFiles();
+    </script>
+</body>
+</html>

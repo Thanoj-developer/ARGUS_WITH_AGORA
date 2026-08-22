@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Environment files
+.env
+.env.*
+*.env
+**/.env
+**/.env.*
+
+# Sensitive PII files
+PII.json
+**/PII.json
+*PII.json
+*pii.json
+*PII*
+*pii*
+
+# Logs
+*.log
+test_output*.log
+
+# Temporary and IDE folders
+test-results/
+.playwright-mcp/
+.agents/
+.gemini/
+scratch/

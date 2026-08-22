@@ -1,0 +1,3435 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Playwright Interactive Controller</title>
+
+    <!-- Modern Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;600;800&display=swap"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-darker: #070a13;
+            --bg-main: #0b0f19;
+            --bg-card: rgba(17, 24, 39, 0.7);
+            --border-color: rgba(55, 65, 81, 0.4);
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --accent-pink: #ec4899;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+
+            --glow-blue: rgba(59, 130, 246, 0.4);
+            --glow-purple: rgba(139, 92, 246, 0.4);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-darker);
+            background-image:
+                radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.1) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.1) 0px, transparent 50%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-darker);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Header styling */
+        header {
+            background: rgba(11, 15, 25, 0.8);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-badge {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: white;
+            font-weight: 800;
+            padding: 0.25rem 0.75rem;
+            border-radius: 8px;
+            letter-spacing: 1px;
+            box-shadow: 0 0 15px var(--glow-blue);
+            font-size: 0.9rem;
+        }
+
+        h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            background: linear-gradient(to right, #ffffff, var(--text-muted));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--accent-red);
+            box-shadow: 0 0 8px var(--accent-red);
+        }
+
+        .status-dot.connected {
+            background-color: var(--accent-green);
+            box-shadow: 0 0 8px var(--accent-green);
+            animation: pulse 1.5s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 0.6;
+                box-shadow: 0 0 4px var(--accent-green);
+            }
+
+            100% {
+                opacity: 1;
+                box-shadow: 0 0 12px var(--accent-green);
+            }
+        }
+
+        /* Main Workspace Layout */
+        .workspace {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        @media (max-width: 1024px) {
+            .workspace {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-blue), var(--accent-purple), transparent);
+            opacity: 0.5;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Code Editor Panel */
+        .editor-section {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .editor-wrapper {
+            position: relative;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            background-color: rgba(0, 0, 0, 0.4);
+            padding: 0.5rem;
+            min-height: 200px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 180px;
+            background: transparent;
+            border: none;
+            color: #38bdf8;
+            /* Nice teal code color */
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            resize: vertical;
+            outline: none;
+            tab-size: 2;
+        }
+
+        /* Button Grouping & Styling */
+        .button-group {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        button {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            color: white;
+            box-shadow: 0 4px 15px var(--glow-blue);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
+            filter: brightness(1.1);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--text-muted);
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-danger:hover {
+            background: var(--accent-red);
+            color: white;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+        }
+
+        /* Preset list styling */
+        .presets-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .presets-title {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .preset-chips {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .preset-chip {
+            background: rgba(59, 130, 246, 0.08);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            color: #93c5fd;
+            padding: 0.35rem 0.65rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            font-family: 'JetBrains Mono', monospace;
+            transition: all 0.2s;
+        }
+
+        .preset-chip:hover {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: var(--accent-blue);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        /* Terminal Console logs */
+        .terminal {
+            background-color: rgba(0, 0, 0, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 0.75rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            min-height: 120px;
+            max-height: 200px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+
+        .log-line {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .log-timestamp {
+            color: var(--text-muted);
+        }
+
+        .log-info {
+            color: var(--accent-blue);
+        }
+
+        .log-success {
+            color: var(--accent-green);
+        }
+
+        .log-error {
+            color: var(--accent-red);
+        }
+
+        .log-body {
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        /* Live Preview Panel */
+        .preview-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            flex: 1;
+            min-height: 380px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .preview-container.focused {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 15px var(--glow-blue);
+            outline: none;
+        }
+
+        .preview-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+            transition: opacity 0.3s;
+            cursor: crosshair;
+        }
+
+        .preview-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            color: var(--text-muted);
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .preview-placeholder svg {
+            width: 48px;
+            height: 48px;
+            stroke: var(--text-muted);
+            opacity: 0.5;
+        }
+
+        /* Action Overlay (Spinners) */
+        .loader-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(11, 15, 25, 0.7);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+
+        .loader-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(59, 130, 246, 0.1);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 1s infinite linear;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes pulse-ai {
+            0% {
+                box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 8px rgba(168, 85, 247, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(168, 85, 247, 0);
+            }
+        }
+
+        /* Toggle Switch Styles */
+        .switch input:checked+.slider {
+            background-color: var(--accent-blue);
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        .switch input:checked+.slider:before {
+            transform: translateX(22px);
+        }
+
+        @keyframes voice-pulse {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(168, 85, 247, 0.7);
+            }
+
+            70% {
+                transform: scale(1.05);
+                box-shadow: 0 0 0 12px rgba(168, 85, 247, 0);
+            }
+
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(168, 85, 247, 0);
+            }
+        }
+
+        /* Scraped Data Table Styles */
+        .scraped-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border-color);
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .scraped-table th {
+            background: rgba(59, 130, 246, 0.1);
+            color: #60a5fa;
+            font-weight: 600;
+            text-align: left;
+            padding: 0.5rem 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .scraped-table td {
+            padding: 0.4rem 0.75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+            word-break: break-all;
+        }
+
+        .scraped-table tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="logo-container">
+            <div class="logo-badge">MCP</div>
+            <h1>Playwright Browser Controller</h1>
+        </div>
+
+        <div class="status-container">
+            <!-- LLM API Key Manager Button (left of status indicator) -->
+            <button id="apiKeyManagerBtn" title="Manage LLM API Key & view model chain"
+                style="padding: 0.4rem 0.8rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.4rem; background: rgba(250, 204, 21, 0.08); border: 1px solid rgba(250, 204, 21, 0.3); color: #fbbf24; border-radius: 8px; font-family: 'Outfit', sans-serif; cursor: pointer; transition: all 0.2s; font-weight: 600;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15 7h3a5 5 0 0 1 5 5 5 5 0 0 1-5 5h-3m-6 0H6a5 5 0 0 1-5-5 5 5 0 0 1 5-5h3"/>
+                    <line x1="8" y1="12" x2="16" y2="12"/>
+                </svg>
+                API Key
+            </button>
+            <div class="status-badge">
+                <div id="statusDot" class="status-dot"></div>
+                <span id="statusText">Disconnected</span>
+            </div>
+            <select id="browserSelect"
+                style="padding: 0.5rem 0.75rem; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-main); font-family: 'Outfit', sans-serif; font-size: 0.85rem; outline: none; cursor: pointer;">
+                <option value="chromium">Default Chromium</option>
+                <option value="chrome">Google Chrome</option>
+                <option value="msedge">Microsoft Edge</option>
+                <option value="access_server">access the server option</option>
+            </select>
+            <button class="btn-secondary" id="resetBtn" title="Relaunch the headed browser">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+                </svg>
+                Reset Browser
+            </button>
+            <button class="btn-primary" id="aiModeBtn"
+                style="padding: 0.5rem 1rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; background: linear-gradient(135deg, #a855f7 0%, #3b82f6 100%); border: none; box-shadow: 0 0 15px rgba(168, 85, 247, 0.4); animation: pulse-ai 2s infinite;"
+                title="Turn natural language into Playwright code">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path
+                        d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275Z" />
+                    <path d="m5 3 1 2.5L8.5 6 6 7 5 9.5 4 7 1.5 6 4 5Z" />
+                    <path d="m19 17 1 2.5 2.5.5-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1Z" />
+                </svg>
+                AI Mode
+            </button>
+            <button class="btn-primary" id="domManagementBtn"
+                style="padding: 0.5rem 1rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%); border: none; box-shadow: 0 0 15px rgba(6, 182, 212, 0.4);"
+                title="DOM & Accessibility Management Panel">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="3" y1="9" x2="21" y2="9"/>
+                    <line x1="9" y1="21" x2="9" y2="9"/>
+                </svg>
+                DOM Management
+            </button>
+            <button class="btn-secondary" id="monitorBtn"
+                style="padding: 0.5rem 1rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); color: #60a5fa;"
+                title="View Captured State Observation">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path
+                        d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0z" />
+                    <circle cx="12" cy="12" r="3" />
+                </svg>
+                State Viewer
+            </button>
+        </div>
+    </header>
+
+    <!-- ======================================================== -->
+    <!-- LLM API Key Manager Modal                                -->
+    <!-- ======================================================== -->
+    <div id="apiKeyModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(7, 10, 19, 0.88); backdrop-filter: blur(10px); z-index: 2000; align-items: center; justify-content: center;">
+        <div style="width: 100%; max-width: 640px; background: rgba(15, 22, 40, 0.98); border: 1px solid rgba(250, 204, 21, 0.25); border-radius: 20px; padding: 2rem; box-shadow: 0 0 60px rgba(250, 204, 21, 0.08), 0 20px 50px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 1.25rem; position: relative; max-height: 90vh; overflow-y: auto;">
+
+            <!-- Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div style="background: linear-gradient(135deg, #f59e0b, #fbbf24); padding: 0.5rem; border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 16px rgba(251, 191, 36, 0.4);">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                            <path d="M15 7h3a5 5 0 0 1 5 5 5 5 0 0 1-5 5h-3m-6 0H6a5 5 0 0 1-5-5 5 5 0 0 1 5-5h3"/>
+                            <line x1="8" y1="12" x2="16" y2="12"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 style="font-size: 1.15rem; font-weight: 700; color: #fbbf24; margin: 0;">LLM API Key Manager</h2>
+                        <p style="font-size: 0.78rem; color: #9ca3af; margin: 0;">NVIDIA NIM Platform — Natural Language → Playwright</p>
+                    </div>
+                </div>
+                <button onclick="document.getElementById('apiKeyModal').style.display='none'" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #9ca3af; padding: 0.4rem 0.7rem; font-size: 1rem; cursor: pointer;">✕</button>
+            </div>
+
+            <!-- Model Fallback Chain -->
+            <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(55,65,81,0.4); border-radius: 12px; padding: 1rem;">
+                <div style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.8px; color: #6b7280; font-weight: 600; margin-bottom: 0.75rem;">🔗 LLM Fallback Chain (3 models)</div>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;" id="modelChainList">
+                    <!-- injected by JS -->
+                </div>
+                <div style="margin-top: 0.75rem; padding: 0.6rem 0.8rem; background: rgba(59, 130, 246, 0.06); border: 1px solid rgba(59, 130, 246, 0.15); border-radius: 8px; font-size: 0.77rem; color: #93c5fd; line-height: 1.5;">
+                    <strong style="color: #60a5fa;">How it works:</strong> When you submit an AI task, Model #1 is tried first. If it times out or fails, Model #2 is automatically tried, then Model #3. All 3 models share the same NVIDIA NIM API key.
+                </div>
+            </div>
+
+            <!-- Current API Key Status -->
+            <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(55,65,81,0.4); border-radius: 12px; padding: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem;">
+                <div>
+                    <div style="font-size: 0.78rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 0.3rem;">Current API Key</div>
+                    <div id="maskedKeyDisplay" style="font-family: 'JetBrains Mono', monospace; font-size: 0.88rem; color: #34d399; letter-spacing: 1px;">(loading...)</div>
+                </div>
+                <div id="keyStatusBadge" style="padding: 0.3rem 0.7rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">--</div>
+            </div>
+
+            <!-- Update Key Form -->
+            <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(250,204,21,0.15); border-radius: 12px; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem;">
+                <div style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.8px; color: #6b7280; font-weight: 600;">🔑 Update API Key</div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="password" id="newApiKeyInput" placeholder="nvapi-xxxxxxxxxxxx..."
+                        style="flex: 1; padding: 0.6rem 0.85rem; background: rgba(0,0,0,0.5); border: 1px solid rgba(250,204,21,0.25); border-radius: 8px; color: #fbbf24; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; outline: none;"
+                    />
+                    <button id="showHideKeyBtn" onclick="const i=document.getElementById('newApiKeyInput'); i.type=i.type==='password'?'text':'password'; this.innerText=i.type==='password'?'👁':'🙈';"
+                        style="padding: 0.6rem 0.8rem; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); border-radius: 8px; color: #9ca3af; font-size: 0.9rem; cursor: pointer;">👁</button>
+                </div>
+                <button id="saveApiKeyBtn" style="padding: 0.6rem 1rem; background: linear-gradient(135deg, #d97706, #fbbf24); color: #111; font-weight: 700; border: none; border-radius: 8px; font-size: 0.88rem; cursor: pointer; font-family: 'Outfit', sans-serif; display: flex; align-items: center; justify-content: center; gap: 0.4rem; transition: all 0.2s;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    Save & Apply (No Restart Needed)
+                </button>
+                <div id="apiKeySaveMsg" style="font-size: 0.8rem; display: none; padding: 0.5rem 0.75rem; border-radius: 8px;"></div>
+            </div>
+
+            <!-- Instructions -->
+            <div style="background: rgba(0,0,0,0.2); border: 1px solid rgba(55,65,81,0.3); border-radius: 12px; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                <div style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.8px; color: #6b7280; font-weight: 600;">📋 How to Get a Free NVIDIA NIM API Key</div>
+                <ol style="font-size: 0.82rem; color: #d1d5db; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.4rem; line-height: 1.6;">
+                    <li>Go to <a href="https://build.nvidia.com" target="_blank" style="color: #60a5fa; text-decoration: none;">build.nvidia.com</a> and sign up / log in.</li>
+                    <li>Click on any model (e.g. <strong style="color: #a5f3fc;">meta/llama-3.1-8b-instruct</strong>).</li>
+                    <li>Click <strong style="color: #fbbf24;">"Get API Key"</strong> → Copy the key starting with <code style="color: #34d399; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;">nvapi-</code></li>
+                    <li>Paste it in the field above and click <strong style="color: #fbbf24;">Save & Apply</strong>.</li>
+                    <li>✅ Free tier includes ~1000 requests/month per model. No credit card required.</li>
+                </ol>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- AI Prompt Modal -->
+    <div id="aiModal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 15, 25, 0.85); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center;">
+        <div class="card"
+            style="width: 100%; max-width: 500px; padding: 2rem; border: 1px solid var(--border-color); background: rgba(15, 22, 40, 0.95); box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2
+                    style="font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; color: var(--text-main);">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path
+                            d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275Z" />
+                    </svg>
+                    Describe Your Automation Task
+                </h2>
+                <button id="closeAiModalBtn"
+                    style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.5rem; line-height: 1;">&times;</button>
+            </div>
+
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+                Type your instructions in plain English, and the AI will generate the Playwright automation script for
+                you.
+            </p>
+
+             <textarea id="aiPromptInput" placeholder="e.g., search for ramayana teaser and play first video in new tab"
+                style="width: 100%; height: 100px; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-main); font-family: 'Outfit', sans-serif; font-size: 0.9rem; resize: none; outline: none; margin-bottom: 1.25rem;"
+                spellcheck="false"></textarea>
+
+            <!-- Google Sheets Connection Panel for AI Mode -->
+            <div style="margin-bottom: 1.5rem; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; display: flex; flex-direction: column; gap: 0.75rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 0.35rem;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <line x1="8" y1="13" x2="16" y2="13" />
+                            <line x1="8" y1="17" x2="16" y2="17" />
+                            <line x1="10" y1="9" x2="9" y2="9" />
+                        </svg>
+                        Google Sheets Research
+                    </span>
+                    <button class="btn-secondary" id="connectSheetTabsBtn" style="padding: 0.3rem 0.7rem; font-size: 0.75rem; border: 1px solid rgba(16, 185, 129, 0.4); color: #34d399; background: rgba(16, 185, 129, 0.05); transition: none; line-height: 1;">
+                        Connect Sheet
+                    </button>
+                </div>
+                
+                <div id="sheetsCheckboxesContainer" style="display: none; flex-direction: column; gap: 0.5rem;">
+                    <p style="font-size: 0.75rem; color: var(--text-muted);">Select tabs to connect for AI analysis:</p>
+                    <div id="sheetsCheckboxGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.5rem; margin-top: 0.25rem;">
+                        <!-- Checkboxes populated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Local JSON Connection Panel for AI Mode -->
+            <div style="margin-bottom: 1.5rem; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; display: flex; flex-direction: column; gap: 0.75rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 0.35rem;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <line x1="8" y1="13" x2="16" y2="13" />
+                            <line x1="8" y1="17" x2="16" y2="17" />
+                            <polyline points="10 9 9 9 8 9" />
+                        </svg>
+                        Local JSON Research
+                    </span>
+                    <button class="btn-secondary" id="connectJsonFilesBtn" style="padding: 0.3rem 0.7rem; font-size: 0.75rem; border: 1px solid rgba(99, 102, 241, 0.4); color: #818cf8; background: rgba(99, 102, 241, 0.05); transition: none; line-height: 1;">
+                        Fetch JSON List
+                    </button>
+                </div>
+                
+                <div id="jsonFilesContainer" style="display: none; flex-direction: column; gap: 0.5rem;">
+                    <p style="font-size: 0.75rem; color: var(--text-muted);">Select JSON files to connect for AI analysis:</p>
+                    <div id="jsonCheckboxGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.5rem; margin-top: 0.25rem;">
+                        <!-- Checkboxes populated dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+                <button class="btn-secondary" id="startVoiceBtn"
+                    style="padding: 0.55rem 1rem; display: flex; align-items: center; gap: 0.5rem; border: 1px solid rgba(168, 85, 247, 0.4); color: #c084fc; background: rgba(168, 85, 247, 0.05); cursor: pointer;"
+                    title="Voice to Text Command">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                        <path d="M19 10v1a7 7 0 0 1-14 0v-1" />
+                        <line x1="12" x2="12" y1="19" y2="22" />
+                    </svg>
+                    Speak
+                </button>
+                <button class="btn-secondary" id="cancelAiBtn" style="padding: 0.55rem 1.25rem;">Cancel</button>
+                <button class="btn-primary" id="generateAiBtn"
+                    style="padding: 0.55rem 1.5rem; background: linear-gradient(135deg, #a855f7 0%, #3b82f6 100%); border: none;">Generate
+                    Code</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Voice Listening Overlay / Toast at bottom -->
+    <div id="voiceOverlay"
+        style="display: none; position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%); z-index: 1100; align-items: center; justify-content: center;">
+        <div class="card" id="voiceCard"
+            style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem 1.5rem; background: rgba(15, 22, 40, 0.95); border: 1px solid rgba(168, 85, 247, 0.4); box-shadow: 0 0 20px rgba(168, 85, 247, 0.3); border-radius: 12px; transition: all 0.3s ease;">
+            <!-- Pulsing neon dot/ring indicator -->
+            <div id="voiceIndicator"
+                style="width: 12px; height: 12px; border-radius: 50%; background: #a855f7; box-shadow: 0 0 10px #a855f7; animation: voice-pulse 1.5s infinite;">
+            </div>
+            <span id="voiceStatusText"
+                style="font-family: 'Outfit', sans-serif; font-size: 0.9rem; font-weight: 500; color: var(--text-main); min-width: 120px;">Listening...</span>
+            
+            <!-- Controls for Pause/Resume and Manual Close -->
+            <div style="display: flex; align-items: center; gap: 0.5rem; border-left: 1px solid var(--border-color); padding-left: 0.75rem; margin-left: 0.25rem;">
+                <button id="voicePauseBtn" class="btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; border-radius: 6px; display: flex; align-items: center; gap: 0.35rem;" title="Pause or resume recording">
+                    <svg id="pauseIcon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <rect id="pauseBar1" x="14" y="4" width="4" height="16" rx="1"></rect>
+                        <rect id="pauseBar2" x="6" y="4" width="4" height="16" rx="1"></rect>
+                    </svg>
+                    <span id="pauseBtnText">Pause</span>
+                </button>
+                <button id="voiceCloseBtn" class="btn-danger" style="padding: 0.35rem; border-radius: 6px; display: flex; align-items: center; justify-content: center; width: 26px; height: 26px;" title="Close mic panel">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- State Viewer Modal -->
+    <div id="observationModal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 15, 25, 0.85); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center;">
+        <div class="card"
+            style="width: 100%; max-width: 800px; padding: 2rem; border: 1px solid var(--border-color); background: rgba(15, 22, 40, 0.95); box-shadow: 0 20px 40px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 1rem; max-height: 90vh; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2
+                    style="font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; color: var(--text-main);">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path
+                            d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0z" />
+                        <circle cx="12" cy="12" r="3" />
+                    </svg>
+                    Captured State Observation
+                </h2>
+                <button id="closeObsModalBtn"
+                    style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.5rem; line-height: 1;">&times;</button>
+            </div>
+
+            <div>
+                <span
+                    style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Active
+                    URL</span>
+                <a id="obsUrl" href="#" target="_blank"
+                    style="color: #60a5fa; font-size: 0.9rem; word-break: break-all; text-decoration: underline;">None</a>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; min-height: 300px;">
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">Captured Screenshot</span>
+                    <div
+                        style="flex: 1; border: 1px solid var(--border-color); border-radius: 8px; background: rgba(0,0,0,0.3); overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative;">
+                        <img id="obsScreenshot" src="" alt="No screenshot"
+                            style="max-width: 100%; max-height: 350px; object-fit: contain; display: none;">
+                        <div id="obsScreenshotPlaceholder" style="color: var(--text-muted); font-size: 0.85rem;">No
+                            screenshot captured yet</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">DOM Snippet (first 5,000 chars)</span>
+                    <textarea id="obsDom" readonly
+                        style="flex: 1; width: 100%; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; color: #a7f3d0; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; resize: none; outline: none; height: 350px;"
+                        placeholder="No DOM snippet captured yet"></textarea>
+                </div>
+            </div>
+
+            <div
+                style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+                <span id="obsTimestamp" style="font-size: 0.8rem; color: var(--text-muted);">Timestamp: -</span>
+                <button class="btn-primary" id="refreshObsBtn"
+                    style="padding: 0.55rem 1.5rem; background: #3b82f6; border: none;">Refresh Data</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scraped Data Modal -->
+    <div id="scrapeModal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 15, 25, 0.85); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center;">
+        <div class="card"
+            style="width: 100%; max-width: 900px; padding: 2rem; border: 1px solid var(--border-color); background: rgba(15, 22, 40, 0.95); box-shadow: 0 20px 40px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 1rem; max-height: 90vh; overflow-y: auto;">
+            
+            <!-- Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2
+                    style="font-family: 'Outfit', sans-serif; font-size: 1.25rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; color: var(--text-main);">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-green)" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    Scraped Web Data Dashboard
+                </h2>
+                <button id="closeScrapeModalBtn"
+                    style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.5rem; line-height: 1;">&times;</button>
+            </div>
+
+            <!-- Page Title and URL Info -->
+            <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem 1rem;">
+                <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.25rem;">Active Site Title</div>
+                <div id="scrapePageTitle" style="font-size: 1rem; color: #fff; font-weight: bold; margin-bottom: 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">N/A</div>
+                <div style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600; margin-bottom: 0.25rem;">Scraped URL</div>
+                <a id="scrapePageUrl" href="#" target="_blank"
+                    style="color: var(--accent-blue); font-size: 0.9rem; word-break: break-all; text-decoration: underline;">None</a>
+            </div>
+
+            <!-- Search Filter Bar and Action Buttons -->
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                <input type="text" id="scrapeSearchInput" placeholder="Filter scraped elements..."
+                    style="flex: 1; min-width: 200px; padding: 0.55rem; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-main); font-family: 'Outfit', sans-serif; font-size: 0.85rem; outline: none;" />
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn-secondary" id="copyScrapeJsonBtn" style="padding: 0.55rem 1rem; font-size: 0.85rem;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                        </svg>
+                        Copy JSON
+                    </button>
+                    <button class="btn-primary" id="downloadScrapeJsonBtn" style="padding: 0.55rem 1rem; font-size: 0.85rem; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); border: none;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        Download JSON
+                    </button>
+                    <button class="btn-primary" id="getDomDataBtn" style="padding: 0.55rem 1rem; font-size: 0.85rem; background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%); border: none; box-shadow: 0 0 15px rgba(16, 185, 129, 0.4); font-weight: bold;" title="Extract clean structured data using DOM Management & Accessibility (Fast, 0 API calls)">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.25rem;">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                        </svg>
+                        Get_Data
+                    </button>
+                    <button class="btn-primary" id="cleanDataBtn" style="padding: 0.55rem 1rem; font-size: 0.85rem; background: linear-gradient(135deg, #a855f7 0%, #3b82f6 100%); border: none; box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);" title="Clean scraped data using LLM and command context">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.25rem;">
+                            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                        </svg>
+                        Get_Clean_data
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tab Headers -->
+            <div id="scrapeTabHeaders" style="display: flex; gap: 0.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; overflow-x: auto;">
+                <span class="preset-chip" style="background: rgba(16, 185, 129, 0.15); border-color: var(--accent-green); color: #a7f3d0; padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer;" data-tab="overview">Overview</span>
+                <span class="preset-chip" style="padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer;" data-tab="json">JSON View</span>
+                <span class="preset-chip" style="padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer;" data-tab="tables">Tables</span>
+                <span class="preset-chip" style="padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer;" data-tab="schema">Schemas (JSON-LD)</span>
+                <span class="preset-chip" style="padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer;" data-tab="media">Links & Media</span>
+                <span class="preset-chip" style="padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer; display: none;" id="cleanTabHeader" data-tab="clean">Clean LLM Data</span>
+            </div>
+
+            <!-- Tab Contents -->
+            <div id="scrapeTabContents" style="flex: 1; min-height: 350px; position: relative;">
+                
+                <!-- Tab: Overview -->
+                <div id="scrapeTabContent-overview" style="display: block;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                        <div style="background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2); padding: 1rem; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #60a5fa;" id="statHeadings">0</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Headings (H1-H6)</div>
+                        </div>
+                        <div style="background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.2); padding: 1rem; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--accent-green);" id="statTables">0</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Data Tables</div>
+                        </div>
+                        <div style="background: rgba(139, 92, 246, 0.05); border: 1px solid rgba(139, 92, 246, 0.2); padding: 1rem; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #a78bfa;" id="statLinks">0</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Extracted Links</div>
+                        </div>
+                        <div style="background: rgba(236, 72, 153, 0.05); border: 1px solid rgba(236, 72, 153, 0.2); padding: 1rem; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #f472b6;" id="statImages">0</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">Extracted Images</div>
+                        </div>
+                        <div style="background: rgba(245, 158, 11, 0.05); border: 1px solid rgba(245, 158, 11, 0.2); padding: 1rem; border-radius: 8px; text-align: center;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #fbbf24;" id="statSchemas">0</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">JSON-LD Schemas</div>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        <h3 style="font-size: 0.95rem; color: var(--text-main); font-weight: 600; border-left: 3px solid var(--accent-green); padding-left: 0.5rem;">Key Metadata Fields</h3>
+                        <div id="scrapeMetadataOverview" style="font-size: 0.85rem; display: flex; flex-direction: column; gap: 0.5rem; background: rgba(0,0,0,0.2); padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); max-height: 200px; overflow-y: auto;">
+                            <!-- Meta keys will be appended here -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: JSON View -->
+                <div id="scrapeTabContent-json" style="display: none;">
+                    <textarea id="scrapeJsonViewer" readonly
+                        style="width: 100%; height: 350px; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; color: #a7f3d0; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; resize: none; outline: none;"></textarea>
+                </div>
+
+                <!-- Tab: Tables -->
+                <div id="scrapeTabContent-tables" style="display: none; height: 350px; overflow-y: auto;">
+                    <div id="scrapeTablesContainer" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                        <!-- Styled HTML tables will be injected here -->
+                    </div>
+                </div>
+
+                <!-- Tab: Schemas -->
+                <div id="scrapeTabContent-schema" style="display: none; height: 350px; overflow-y: auto;">
+                    <div id="scrapeSchemaContainer" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <!-- JSON-LD code blocks will be injected here -->
+                    </div>
+                </div>
+
+                <!-- Tab: Links & Media -->
+                <div id="scrapeTabContent-media" style="display: none; height: 350px; overflow-y: auto;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <h3 style="font-size: 0.9rem; font-weight: 600; color: #a78bfa;">Links (showing top 100)</h3>
+                            <div id="scrapeLinksList" style="display: flex; flex-direction: column; gap: 0.5rem; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid var(--border-color); max-height: 310px; overflow-y: auto; font-size: 0.8rem;">
+                                <!-- Links list -->
+                            </div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                            <h3 style="font-size: 0.9rem; font-weight: 600; color: #f472b6;">Images (showing top 50)</h3>
+                            <div id="scrapeImagesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 0.5rem; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid var(--border-color); max-height: 310px; overflow-y: auto;">
+                                <!-- Image grid previews -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Clean LLM Data -->
+                <div id="scrapeTabContent-clean" style="display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                        <span style="font-size: 0.85rem; color: var(--text-muted);">LLM Cleaned Structured Output</span>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="text" id="sheetNameInput" placeholder="Tab Name..." 
+                                style="padding: 0.35rem 0.5rem; font-size: 0.8rem; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.3); color: #fff; width: 140px; outline: none;" 
+                                value="Scraped Products">
+                            <button class="btn-primary" id="exportToSheetsBtn" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; border-radius: 6px;">
+                                Export into sheets
+                            </button>
+                            <input type="text" id="cleanDataNameInput" placeholder="File Name..." 
+                                style="padding: 0.35rem 0.5rem; font-size: 0.8rem; border-radius: 6px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.3); color: #fff; width: 110px; outline: none;" 
+                                value="Bottel">
+                            <button class="btn-secondary" id="downloadCleanJsonBtn" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; border-radius: 6px;">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.25rem;">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="7 10 12 15 17 10" />
+                                    <line x1="12" y1="15" x2="12" y2="3" />
+                                </svg>
+                                Download Clean JSON
+                            </button>
+                        </div>
+                    </div>
+                    <textarea id="cleanJsonViewer" readonly
+                        style="width: 100%; height: 310px; padding: 0.75rem; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; color: #60a5fa; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; resize: none; outline: none;"
+                        placeholder="Click 'Get_Clean_data' to process the scraped elements through LLM cleaning..."></textarea>
+                </div>
+
+            </div>
+            
+            <!-- Footer -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+                <span id="scrapeTimestamp" style="font-size: 0.8rem; color: var(--text-muted);">Scrape Time: -</span>
+                <button class="btn-secondary" id="scrapeRefreshBtn" style="padding: 0.55rem 1.5rem;">Rescrape Page</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DOM Management & Accessibility Workflow Modal -->
+    <div id="domModal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 15, 25, 0.88); backdrop-filter: blur(10px); z-index: 1000; align-items: center; justify-content: center;">
+        <div class="card"
+            style="width: 100%; max-width: 960px; padding: 2rem; border: 1px solid rgba(6, 182, 212, 0.4); background: rgba(15, 22, 40, 0.95); box-shadow: 0 20px 50px rgba(0,0,0,0.6); display: flex; flex-direction: column; gap: 1.25rem; max-height: 90vh; overflow-y: auto;">
+            
+            <!-- Header -->
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;">
+                <div>
+                    <h2 style="font-family: 'Outfit', sans-serif; font-size: 1.3rem; font-weight: 700; display: flex; align-items: center; gap: 0.6rem; color: var(--text-main);">
+                        <span style="background: linear-gradient(135deg, #06b6d4, #3b82f6); color: white; padding: 0.25rem 0.6rem; border-radius: 6px; font-size: 0.85rem; font-weight: 800;">STEP-BY-STEP</span>
+                        DOM Management & Accessibility Flow
+                    </h2>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
+                        Interactive step-by-step workflow connected directly to the live browser screen.
+                    </p>
+                </div>
+                <button id="closeDomModalBtn"
+                    style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.5rem; line-height: 1;">&times;</button>
+            </div>
+
+            <!-- Headed Browser Tabs Switcher -->
+            <div style="background: rgba(99, 102, 241, 0.04); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 8px; padding: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem; margin-bottom: 0.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 0.8rem; font-weight: 600; color: #a5b4fc; display: flex; align-items: center; gap: 0.35rem;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                            <line x1="3" y1="9" x2="21" y2="9" />
+                            <line x1="9" y1="21" x2="9" y2="9" />
+                        </svg>
+                        Headed Browser Active Tabs (Switch Tab Pointer)
+                    </span>
+                    <button class="btn-secondary" id="refreshTabsBtn" style="padding: 0.25rem 0.6rem; font-size: 0.7rem; border-color: rgba(99, 102, 241, 0.4); color: #818cf8; background: rgba(99, 102, 241, 0.05); line-height: 1;">
+                        Refresh Tabs
+                    </button>
+                </div>
+                <div id="activeTabsListContainer" style="display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.25rem;">
+                    <!-- Tabs will be rendered here dynamically -->
+                </div>
+            </div>
+
+            <!-- Workflow Step Selector Buttons -->
+            <div>
+                <div style="font-size: 0.8rem; color: #38bdf8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 0.5rem;">
+                    Select Workflow Function:
+                </div>
+                <div id="domWorkflowSteps" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button class="preset-chip active-step" data-action="captureDomSnapshot" style="padding: 0.5rem 0.85rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer; background: rgba(6, 182, 212, 0.2); border: 1px solid #06b6d4; color: #67e8f9;">
+                        1. Capture DOM Snapshot
+                    </button>
+                    <button class="preset-chip" data-action="extractAccessibilityRoles" style="padding: 0.5rem 0.85rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer;">
+                        2. Extract Accessibility Roles
+                    </button>
+                    <button class="preset-chip" data-action="assignSelectorIndices" style="padding: 0.5rem 0.85rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer;">
+                        3. Assign Selector Indices
+                    </button>
+                    <button class="preset-chip" data-action="resolveTargetElement" style="padding: 0.5rem 0.85rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer;">
+                        4. Resolve Target Element
+                    </button>
+                    <button class="preset-chip" data-action="runClickOrFill" style="padding: 0.5rem 0.85rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer;">
+                        5. Run Click or Fill
+                    </button>
+                    <button class="preset-chip" data-action="visionModelFallback" style="padding: 0.5rem 0.85rem; border-radius: 6px; font-size: 0.8rem; cursor: pointer; border-color: rgba(239, 68, 68, 0.5); color: #fca5a5;">
+                        6. Vision Model Fallback
+                    </button>
+                </div>
+            </div>
+
+            <!-- Parameters & Intent Execution Panel -->
+            <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 8px; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);" id="domActionTitle">
+                        Action: Capture DOM Snapshot
+                    </span>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <button class="btn-secondary" id="fillSampleIntentBtn" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; border-color: rgba(6, 182, 212, 0.4); color: #67e8f9;">
+                            📋 Paste Intent Template
+                        </button>
+                        <span style="font-size: 0.75rem; color: #10b981; display: flex; align-items: center; gap: 0.35rem;">
+                            <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span>
+                            Live Browser
+                        </span>
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <textarea id="domParamsInput" placeholder='Enter search term or JSON Intent (e.g. {"index": 3} or {"role": "button", "name": "Buy Now"} or {"index": 2, "value": "my text"})...'
+                            style="flex: 1; height: 60px; padding: 0.55rem 0.75rem; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); border-radius: 6px; color: #67e8f9; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; resize: none; outline: none;"></textarea>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; gap: 0.75rem; align-items: center;">
+                        <button class="btn-primary" id="runDomActionBtn"
+                            style="padding: 0.55rem 1.25rem; font-size: 0.85rem; background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%); border: none; white-space: nowrap;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 0.25rem;">
+                                <polygon points="5 3 19 12 5 21 5 3" />
+                            </svg>
+                            Run Current Step
+                        </button>
+                        <button class="btn-primary" id="proceedActionBtn"
+                            style="padding: 0.55rem 1.5rem; font-size: 0.85rem; background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; box-shadow: 0 0 15px rgba(16, 185, 129, 0.4); white-space: nowrap;"
+                            title="Execute action on the resolved target in the live browser">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.35rem;">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                            Proceed (Execute on Live Page)
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Output & Observation Viewer -->
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Observation Output (Live Response)</span>
+                    <button class="btn-secondary" id="clearDomOutputBtn" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">Clear</button>
+                </div>
+                <textarea id="domOutputViewer" readonly
+                    style="width: 100%; height: 280px; padding: 0.85rem; background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); border-radius: 8px; color: #67e8f9; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; resize: none; outline: none;"
+                    placeholder="Click 'Execute Step' to run the function on the live browser and observe the output here and in your server terminal..."></textarea>
+            </div>
+
+            <!-- Footer -->
+            <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
+                <span id="domStatusTimestamp" style="font-size: 0.8rem; color: var(--text-muted);">Ready</span>
+                <span style="font-size: 0.75rem; color: var(--text-muted);">Module: DOM_ACCESSBILITY/dom_manager.js</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="workspace">
+
+        <!-- Left Panel: Control Panel -->
+        <div class="card">
+            <div class="card-title">
+                <span>Control Console</span>
+                <span style="font-size: 0.8rem; color: var(--text-muted);">Node JS Execution Context</span>
+            </div>
+
+            <div class="editor-section">
+                <div class="presets-container">
+                    <div class="presets-title">Presets / Quick Actions</div>
+                    <div class="preset-chips">
+                        <span class="preset-chip" data-code="await page.goto('https://google.com')">Go to Google</span>
+                        <span class="preset-chip"
+                            data-code="await page.fill('[name=&quot;q&quot;]', 'Playwright testing')">Type Search</span>
+                        <span class="preset-chip" data-code="await page.press('[name=&quot;q&quot;]', 'Enter')">Submit
+                            Search</span>
+                        <span class="preset-chip" data-code="await page.click('h3')">Click First Result</span>
+                        <span class="preset-chip" data-code="await page.goto('https://playwright.dev')">Go to Playwright
+                            Dev</span>
+                        <span class="preset-chip"
+                            data-code="await page.goto('https://www.youtube.com/results?search_query=ramayana+teaser');&#10;const href = await page.locator('ytd-video-renderer a#video-title').first().getAttribute('href');&#10;const videoUrl = 'https://www.youtube.com' + href;&#10;await newTabAccess.openNewTab(context, videoUrl);">access
+                            the server option</span>
+                    </div>
+                </div>
+
+                <div class="editor-wrapper">
+                    <textarea id="commandEditor"
+                        placeholder="// Write async playwright code here...&#10;// Example:&#10;await page.goto('https://example.com');"
+                        spellcheck="false"></textarea>
+                </div>
+
+                <div class="button-group" style="align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                    <button class="btn-primary" id="runBtn">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polygon points="5 3 19 12 5 21 5 3" />
+                        </svg>
+                        Execute Script
+                    </button>
+                    <button class="btn-secondary" id="clearBtn">Clear Editor</button>
+                    
+                    <!-- Max Tabs Control (Left of Open Live Browser) -->
+                    <div id="maxTabsContainer" style="display: flex; align-items: center; gap: 0.35rem; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.3rem 0.55rem;" title="Specify maximum number of tabs to open for batch tab actions">
+                        <span style="font-size: 0.78rem; color: #38bdf8; font-weight: 500; display: flex; align-items: center; gap: 0.25rem; white-space: nowrap;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="3" y1="9" x2="21" y2="9"/>
+                            </svg>
+                            Max Tabs:
+                        </span>
+                        <select id="maxTabsSelect" style="background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); border-radius: 4px; color: #67e8f9; font-size: 0.8rem; padding: 0.2rem 0.4rem; outline: none; cursor: pointer;">
+                            <option value="5">5 Tabs</option>
+                            <option value="10">10 Tabs</option>
+                            <option value="15">15 Tabs</option>
+                            <option value="20">20 Tabs</option>
+                            <option value="all" selected>All Tabs</option>
+                            <option value="custom">Custom...</option>
+                        </select>
+                        <input type="number" id="maxTabsCustomInput" min="1" max="100" placeholder="#" style="display: none; width: 45px; background: rgba(0,0,0,0.4); border: 1px solid var(--border-color); border-radius: 4px; color: #67e8f9; font-size: 0.8rem; padding: 0.2rem 0.35rem; outline: none;" />
+                    </div>
+
+                    <button class="btn-secondary" id="openLiveBrowserBtn" style="padding: 0.5rem 1rem; font-size: 0.8rem; border-color: rgba(16, 185, 129, 0.4); color: #34d399; background: rgba(16, 185, 129, 0.05);" title="Free port 3000 and restart Playwright server in an interactive terminal">open live browser</button>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-left: auto;">
+                        <span style="font-size: 0.85rem; color: var(--text-muted);">Auto Execute</span>
+                        <label class="switch"
+                            style="position: relative; display: inline-block; width: 44px; height: 22px;">
+                            <input type="checkbox" id="autoExecuteToggle" style="opacity: 0; width: 0; height: 0;">
+                            <span class="slider"
+                                style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.05); transition: .3s; border-radius: 22px; border: 1px solid var(--border-color);"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-title" style="margin-top: 0.5rem;">
+                <span>Terminal Logs</span>
+                <button class="btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;"
+                    id="clearLogsBtn">Clear Logs</button>
+            </div>
+
+            <div class="terminal" id="terminalLogs">
+                <div class="log-line">
+                    <span class="log-timestamp">[System]</span>
+                    <span class="log-info">Console initialized. Ready to execute commands.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Live Viewport -->
+        <div class="card">
+            <div class="card-title">
+                <span>Live Browser Screen</span>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button class="btn-primary" style="padding: 0.25rem 0.60rem; font-size: 0.75rem; background: linear-gradient(135deg, var(--accent-green), #059669); border: none; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);"
+                        id="scrapeBtn" title="Scrape structured JSON data from the current page">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.25rem;">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        Scrape
+                    </button>
+                    <button class="btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;"
+                        id="refreshScreenshotBtn">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path
+                                d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                        </svg>
+                        Refresh Screen
+                    </button>
+                </div>
+            </div>
+
+            <div class="preview-container" id="previewContainer" tabindex="0">
+                <!-- Loader Overlay -->
+                <div class="loader-overlay" id="loaderOverlay">
+                    <div class="spinner"></div>
+                </div>
+
+                <img src="" id="browserPreview" class="preview-img" style="display: none;" alt="Browser Viewport">
+
+                <div class="preview-placeholder" id="previewPlaceholder">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                        <line x1="8" y1="21" x2="16" y2="21"></line>
+                        <line x1="12" y1="17" x2="12" y2="21"></line>
+                    </svg>
+                    <div>
+                        <p style="font-weight: 600; color: var(--text-main);">No Browser Output Yet</p>
+                        <p style="font-size: 0.85rem; margin-top: 0.25rem;">Execute a command to spin up the headed
+                            browser and see it live.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Keyboard Input Panel -->
+            <div
+                style="display: flex; gap: 0.5rem; width: 100%; margin-top: 0.5rem; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 8px; border: 1px solid var(--border-color);">
+                <input type="text" id="keyboardInput" placeholder="Type text to send to focused browser element..."
+                    style="flex: 1; padding: 0.55rem; background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-main); font-family: 'Outfit', sans-serif; font-size: 0.85rem; outline: none;" />
+                <button class="btn-secondary" id="sendTextBtn" style="padding: 0.55rem 1rem; font-size: 0.85rem;">Send
+                    Text</button>
+                <button class="btn-secondary" id="sendEnterBtn" style="padding: 0.55rem 1rem; font-size: 0.85rem;">Enter
+                    ↵</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const serverUrl = 'http://localhost:2001';
+        const executedCommands = [];
+
+        // UI Selectors
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const commandEditor = document.getElementById('commandEditor');
+        const runBtn = document.getElementById('runBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const resetBtn = document.getElementById('resetBtn');
+
+        // ===== API Key Manager Logic =====
+        const apiKeyManagerBtn = document.getElementById('apiKeyManagerBtn');
+        const apiKeyModal = document.getElementById('apiKeyModal');
+        const modelChainList = document.getElementById('modelChainList');
+        const maskedKeyDisplay = document.getElementById('maskedKeyDisplay');
+        const keyStatusBadge = document.getElementById('keyStatusBadge');
+        const newApiKeyInput = document.getElementById('newApiKeyInput');
+        const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
+        const apiKeySaveMsg = document.getElementById('apiKeySaveMsg');
+
+        const modelBadgeColors = ['#22c55e', '#f59e0b', '#8b5cf6'];
+        const modelIcons = ['⚡', '🔁', '🛡️'];
+
+        async function openApiKeyModal() {
+            apiKeyModal.style.display = 'flex';
+            maskedKeyDisplay.innerText = '(loading...)';
+            keyStatusBadge.innerText = '--';
+            modelChainList.innerHTML = '<span style="color:#6b7280; font-size:0.8rem;">Loading models...</span>';
+            try {
+                const res = await fetch(`${serverUrl}/get-llm-config`);
+                const cfg = await res.json();
+                if (cfg.success) {
+                    maskedKeyDisplay.innerText = cfg.maskedKey;
+                    keyStatusBadge.innerText = cfg.isKeySet ? '✅ Active' : '⚠️ Not Set';
+                    keyStatusBadge.style.background = cfg.isKeySet ? 'rgba(34,197,94,0.15)' : 'rgba(239,68,68,0.15)';
+                    keyStatusBadge.style.color = cfg.isKeySet ? '#4ade80' : '#f87171';
+                    keyStatusBadge.style.border = cfg.isKeySet ? '1px solid rgba(34,197,94,0.3)' : '1px solid rgba(239,68,68,0.3)';
+
+                    modelChainList.innerHTML = cfg.models.map((m, i) => `
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.55rem 0.8rem; background: rgba(${i===0?'34,197,94':i===1?'245,158,11':'139,92,246'},0.06); border: 1px solid rgba(${i===0?'34,197,94':i===1?'245,158,11':'139,92,246'},0.2); border-radius: 8px;">
+                            <div style="display: flex; align-items: center; gap: 0.6rem;">
+                                <span style="font-size: 1.1rem;">${modelIcons[i]}</span>
+                                <div>
+                                    <div style="font-size: 0.82rem; font-weight: 600; color: ${modelBadgeColors[i]};">#${i+1} ${m.role}</div>
+                                    <div style="font-size: 0.75rem; color: #9ca3af; font-family: 'JetBrains Mono', monospace;">${m.id}</div>
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 0.78rem; font-weight: 600; color: #d1d5db;">${m.label}</div>
+                                <div style="font-size: 0.72rem; color: #6b7280;">Avg: ${m.speed}</div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            } catch(e) {
+                maskedKeyDisplay.innerText = '(could not load)';
+                modelChainList.innerHTML = '<span style="color:#ef4444; font-size:0.8rem;">Failed to fetch config from server.</span>';
+            }
+        }
+
+        if (apiKeyManagerBtn) {
+            apiKeyManagerBtn.addEventListener('click', openApiKeyModal);
+            apiKeyManagerBtn.addEventListener('mouseenter', () => {
+                apiKeyManagerBtn.style.background = 'rgba(250,204,21,0.15)';
+                apiKeyManagerBtn.style.boxShadow = '0 0 12px rgba(251,191,36,0.25)';
+            });
+            apiKeyManagerBtn.addEventListener('mouseleave', () => {
+                apiKeyManagerBtn.style.background = 'rgba(250,204,21,0.08)';
+                apiKeyManagerBtn.style.boxShadow = 'none';
+            });
+        }
+
+        // Close modal on backdrop click
+        if (apiKeyModal) {
+            apiKeyModal.addEventListener('click', (e) => {
+                if (e.target === apiKeyModal) apiKeyModal.style.display = 'none';
+            });
+        }
+
+        if (saveApiKeyBtn) {
+            saveApiKeyBtn.addEventListener('click', async () => {
+                const key = newApiKeyInput.value.trim();
+                if (!key) {
+                    apiKeySaveMsg.style.display = 'block';
+                    apiKeySaveMsg.style.background = 'rgba(239,68,68,0.1)';
+                    apiKeySaveMsg.style.border = '1px solid rgba(239,68,68,0.3)';
+                    apiKeySaveMsg.style.color = '#f87171';
+                    apiKeySaveMsg.innerText = '⚠️ Please enter an API key first.';
+                    return;
+                }
+                saveApiKeyBtn.innerText = 'Saving...';
+                saveApiKeyBtn.disabled = true;
+                try {
+                    const res = await fetch(`${serverUrl}/update-api-key`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ apiKey: key })
+                    });
+                    const data = await res.json();
+                    apiKeySaveMsg.style.display = 'block';
+                    if (data.success) {
+                        apiKeySaveMsg.style.background = 'rgba(34,197,94,0.1)';
+                        apiKeySaveMsg.style.border = '1px solid rgba(34,197,94,0.3)';
+                        apiKeySaveMsg.style.color = '#4ade80';
+                        apiKeySaveMsg.innerText = '✅ ' + data.message;
+                        newApiKeyInput.value = '';
+                        // Refresh the masked key display
+                        setTimeout(openApiKeyModal, 600);
+                    } else {
+                        apiKeySaveMsg.style.background = 'rgba(239,68,68,0.1)';
+                        apiKeySaveMsg.style.border = '1px solid rgba(239,68,68,0.3)';
+                        apiKeySaveMsg.style.color = '#f87171';
+                        apiKeySaveMsg.innerText = '❌ Error: ' + (data.error || 'Unknown error');
+                    }
+                } catch(err) {
+                    apiKeySaveMsg.style.display = 'block';
+                    apiKeySaveMsg.style.background = 'rgba(239,68,68,0.1)';
+                    apiKeySaveMsg.style.border = '1px solid rgba(239,68,68,0.3)';
+                    apiKeySaveMsg.style.color = '#f87171';
+                    apiKeySaveMsg.innerText = '❌ Network error: ' + err.message;
+                } finally {
+                    saveApiKeyBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save & Apply (No Restart Needed)';
+                    saveApiKeyBtn.disabled = false;
+                }
+            });
+        }
+        // ===== End API Key Manager =====
+
+        const maxTabsSelect = document.getElementById('maxTabsSelect');
+        const maxTabsCustomInput = document.getElementById('maxTabsCustomInput');
+        const openLiveBrowserBtn = document.getElementById('openLiveBrowserBtn');
+
+        if (maxTabsSelect && maxTabsCustomInput) {
+            maxTabsSelect.addEventListener('change', () => {
+                if (maxTabsSelect.value === 'custom') {
+                    maxTabsCustomInput.style.display = 'inline-block';
+                    maxTabsCustomInput.focus();
+                } else {
+                    maxTabsCustomInput.style.display = 'none';
+                }
+            });
+        }
+        const browserSelect = document.getElementById('browserSelect');
+        const terminalLogs = document.getElementById('terminalLogs');
+        const clearLogsBtn = document.getElementById('clearLogsBtn');
+        const browserPreview = document.getElementById('browserPreview');
+        const previewPlaceholder = document.getElementById('previewPlaceholder');
+        const loaderOverlay = document.getElementById('loaderOverlay');
+        const refreshScreenshotBtn = document.getElementById('refreshScreenshotBtn');
+
+        // Add log to terminal
+        function log(message, type = 'info', isHtml = false) {
+            const timestamp = new Date().toLocaleTimeString();
+            const line = document.createElement('div');
+            line.className = 'log-line';
+
+            let typeClass = 'log-info';
+            if (type === 'success') typeClass = 'log-success';
+            if (type === 'error') typeClass = 'log-error';
+
+            const bodyContent = isHtml ? message : escapeHtml(message);
+
+            line.innerHTML = `
+        <span class="log-timestamp">[${timestamp}]</span>
+        <span class="${typeClass}">&gt;</span>
+        <span class="log-body">${bodyContent}</span>
+      `;
+            terminalLogs.appendChild(line);
+            terminalLogs.scrollTop = terminalLogs.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            return text.toString()
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Set connection status
+        function setConnectionStatus(connected, text = 'Connected') {
+            if (connected) {
+                statusDot.className = 'status-dot connected';
+                statusText.innerText = text;
+            } else {
+                statusDot.className = 'status-dot';
+                statusText.innerText = 'Disconnected';
+            }
+        }
+
+        // Update placeholder text based on mode
+        function updatePlaceholderText() {
+            const placeholderTitle = document.querySelector('#previewPlaceholder p:first-of-type');
+            const placeholderSubtitle = document.querySelector('#previewPlaceholder p:last-of-type');
+            if (!placeholderTitle || !placeholderSubtitle) return;
+
+            if (browserSelect.value === 'access_server') {
+                placeholderTitle.textContent = "Real-Time Video Streaming Active";
+                placeholderSubtitle.textContent = "Screenshot streaming is disabled to prevent lagging. Please watch the headed Google Chrome window on your desktop to view the video.";
+            } else {
+                placeholderTitle.textContent = "No Browser Output Yet";
+                placeholderSubtitle.textContent = "Execute a command to spin up the headed browser and see it live.";
+            }
+        }
+
+        // Load screenshot
+        function updatePreview(screenshotBase64) {
+            if (screenshotBase64) {
+                browserPreview.src = screenshotBase64;
+                browserPreview.style.display = 'block';
+                previewPlaceholder.style.display = 'none';
+                setConnectionStatus(true);
+            } else {
+                browserPreview.style.display = 'none';
+                previewPlaceholder.style.display = 'flex';
+                updatePlaceholderText();
+            }
+        }
+
+        // Execute script
+        async function executeScript() {
+            const code = commandEditor.value.trim();
+            if (!code) {
+                log('Error: Editor is empty!', 'error');
+                return;
+            }
+
+            log(`Executing command...`);
+            loaderOverlay.classList.add('active');
+
+            try {
+                const response = await fetch(`${serverUrl}/execute`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    log(data.result, 'success');
+                    // Track command history
+                    executedCommands.push(code);
+                    if (executedCommands.length > 4) {
+                        executedCommands.shift();
+                    }
+                } else {
+                    log(data.error, 'error');
+                }
+
+                if (data.screenshot) {
+                    updatePreview(data.screenshot);
+                }
+            } catch (err) {
+                log(`Network connection failed: ${err.message}`, 'error');
+                setConnectionStatus(false);
+            } finally {
+                loaderOverlay.classList.remove('active');
+            }
+        }
+
+        // Relaunch browser
+        async function resetBrowser() {
+            const channel = browserSelect.value;
+            updatePlaceholderText();
+            log(`Resetting browser session (channel: ${channel})...`);
+            loaderOverlay.classList.add('active');
+
+            try {
+                const response = await fetch(`${serverUrl}/reset`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ channel })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    log(`Browser successfully reset and launched in headed mode (${channel}).`, 'success');
+                    setConnectionStatus(true);
+                    updatePreview(data.screenshot);
+                } else {
+                    log(`Failed to reset browser: ${data.error}`, 'error');
+                }
+            } catch (err) {
+                log(`Failed to reach reset server: ${err.message}`, 'error');
+                setConnectionStatus(false);
+            } finally {
+                loaderOverlay.classList.remove('active');
+            }
+        }
+
+        // Get current screenshot
+        async function fetchScreenshot() {
+            try {
+                const response = await fetch(`${serverUrl}/screenshot`);
+                const data = await response.json();
+                if (data.screenshot) {
+                    updatePreview(data.screenshot);
+                    setConnectionStatus(true);
+                }
+            } catch (err) {
+                // Fail silently on polling, update status if completely offline
+                setConnectionStatus(false);
+            }
+        }
+
+        // Restart server to open live browser
+        async function openLiveBrowser() {
+            log('Initiating server restart & live browser launch...');
+            loaderOverlay.classList.add('active');
+            
+            try {
+                const response = await fetch(`${serverUrl}/open-live-browser`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                if (data.success) {
+                    log('Server is restarting. Please wait for the new browser window to open...', 'success');
+                    setConnectionStatus(false);
+                    updatePreview(null);
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 4500);
+                } else {
+                    log(`Failed to initiate restart: ${data.message || 'Unknown error'}`, 'error');
+                }
+            } catch (err) {
+                log('Connection closed. Server is restarting...', 'success');
+                setConnectionStatus(false);
+                updatePreview(null);
+                setTimeout(() => {
+                    window.location.reload();
+                }, 4500);
+            } finally {
+                loaderOverlay.classList.remove('active');
+            }
+        }
+
+        // Event Listeners
+        runBtn.addEventListener('click', executeScript);
+        openLiveBrowserBtn.addEventListener('click', openLiveBrowser);
+
+        clearBtn.addEventListener('click', () => {
+            commandEditor.value = '';
+        });
+
+        clearLogsBtn.addEventListener('click', () => {
+            terminalLogs.innerHTML = '';
+            log('Console cleared.', 'info');
+        });
+
+        resetBtn.addEventListener('click', resetBrowser);
+        refreshScreenshotBtn.addEventListener('click', fetchScreenshot);
+
+        // Preset chips
+        document.querySelectorAll('.preset-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                commandEditor.value = chip.getAttribute('data-code');
+            });
+        });
+
+        const previewContainer = document.getElementById('previewContainer');
+
+        // Handle focus styles
+        previewContainer.addEventListener('focus', () => {
+            previewContainer.classList.add('focused');
+        });
+        previewContainer.addEventListener('blur', () => {
+            previewContainer.classList.remove('focused');
+        });
+
+        // Click on Preview Image to click in the browser
+        browserPreview.addEventListener('click', async (e) => {
+            const rect = browserPreview.getBoundingClientRect();
+            // Scale coordinates to browser viewport width/height (1280 x 720)
+            const x = Math.round((e.clientX - rect.left) / rect.width * 1280);
+            const y = Math.round((e.clientY - rect.top) / rect.height * 720);
+
+            log(`Clicking browser coordinates: (${x}, ${y})...`);
+
+            // Focus the container so keyboard inputs are captured directly
+            previewContainer.focus();
+
+            try {
+                const response = await fetch(`${serverUrl}/click`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ x, y })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    log(`Click successful at (${x}, ${y})`, 'success');
+                    if (data.screenshot) {
+                        updatePreview(data.screenshot);
+                    }
+                } else {
+                    log(`Click failed: ${data.error}`, 'error');
+                }
+            } catch (err) {
+                log(`Failed to send click event: ${err.message}`, 'error');
+            }
+        });
+
+        // Direct Keyboard Forwarding when the container is focused
+        previewContainer.addEventListener('keydown', async (e) => {
+            // Ignore keys if the user is typing inside the manual input or code editor textareas
+            if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
+                return;
+            }
+
+            // Prevent default page actions for special keys (scrolling on arrows/space, back/forward on backspace)
+            const keysToPrevent = ['Backspace', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter'];
+            if (keysToPrevent.includes(e.key) || e.code === 'Space') {
+                e.preventDefault();
+            }
+
+            let payload = {};
+            if (e.key.length === 1) {
+                // Normal printable characters
+                payload = { text: e.key };
+            } else {
+                // Special keys (Enter, Backspace, Tab, ArrowLeft, etc.)
+                payload = { key: e.key };
+            }
+
+            try {
+                const response = await fetch(`${serverUrl}/type`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                if (data.success && data.screenshot) {
+                    updatePreview(data.screenshot);
+                }
+            } catch (err) {
+                console.error('Failed to send keypress:', err);
+            }
+        });
+
+        // Keyboard Input controls (Fallback inputs)
+        const keyboardInput = document.getElementById('keyboardInput');
+        const sendTextBtn = document.getElementById('sendTextBtn');
+        const sendEnterBtn = document.getElementById('sendEnterBtn');
+
+        async function sendText() {
+            const text = keyboardInput.value;
+            if (!text) return;
+            log(`Typing text via fallback: "${text}"...`);
+            loaderOverlay.classList.add('active');
+
+            try {
+                const response = await fetch(`${serverUrl}/type`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    log(`Typed text: "${text}"`, 'success');
+                    keyboardInput.value = '';
+                    if (data.screenshot) {
+                        updatePreview(data.screenshot);
+                    }
+                } else {
+                    log(`Typing failed: ${data.error}`, 'error');
+                }
+            } catch (err) {
+                log(`Failed to send keystrokes: ${err.message}`, 'error');
+            } finally {
+                loaderOverlay.classList.remove('active');
+            }
+        }
+
+        async function sendKey(key) {
+            log(`Pressing key: "${key}"...`);
+            loaderOverlay.classList.add('active');
+
+            try {
+                const response = await fetch(`${serverUrl}/type`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    log(`Pressed key: "${key}"`, 'success');
+                    if (data.screenshot) {
+                        updatePreview(data.screenshot);
+                    }
+                } else {
+                    log(`Key press failed: ${data.error}`, 'error');
+                }
+            } catch (err) {
+                log(`Failed to send key: ${err.message}`, 'error');
+            } finally {
+                loaderOverlay.classList.remove('active');
+            }
+        }
+
+        // AI Mode Modal Selectors & Logic
+        const aiModeBtn = document.getElementById('aiModeBtn');
+        const aiModal = document.getElementById('aiModal');
+        const closeAiModalBtn = document.getElementById('closeAiModalBtn');
+        const cancelAiBtn = document.getElementById('cancelAiBtn');
+        const generateAiBtn = document.getElementById('generateAiBtn');
+        const aiPromptInput = document.getElementById('aiPromptInput');
+
+        aiModeBtn.addEventListener('click', () => {
+            aiModal.style.display = 'flex';
+            aiPromptInput.focus();
+        });
+
+        const closeAiModal = () => {
+            aiModal.style.display = 'none';
+            aiPromptInput.value = '';
+        };
+
+        closeAiModalBtn.addEventListener('click', closeAiModal);
+        cancelAiBtn.addEventListener('click', closeAiModal);
+
+        // State Observation Modal Selectors & Logic
+        const monitorBtn = document.getElementById('monitorBtn');
+        const observationModal = document.getElementById('observationModal');
+        const closeObsModalBtn = document.getElementById('closeObsModalBtn');
+        const refreshObsBtn = document.getElementById('refreshObsBtn');
+        const obsUrl = document.getElementById('obsUrl');
+        const obsScreenshot = document.getElementById('obsScreenshot');
+        const obsScreenshotPlaceholder = document.getElementById('obsScreenshotPlaceholder');
+        const obsDom = document.getElementById('obsDom');
+        const obsTimestamp = document.getElementById('obsTimestamp');
+
+        async function loadObservationData() {
+            refreshObsBtn.disabled = true;
+            refreshObsBtn.innerText = 'Refreshing...';
+            try {
+                const response = await fetch(`${serverUrl}/observation`);
+                if (response.ok) {
+                    const data = await response.json();
+                    obsUrl.innerText = data.currentUrl || 'None';
+                    obsUrl.href = data.currentUrl || '#';
+
+                    if (data.screenshotBase64) {
+                        obsScreenshot.src = `data:image/png;base64,${data.screenshotBase64}`;
+                        obsScreenshot.style.display = 'block';
+                        obsScreenshotPlaceholder.style.display = 'none';
+                    } else {
+                        obsScreenshot.style.display = 'none';
+                        obsScreenshotPlaceholder.style.display = 'block';
+                    }
+
+                    obsDom.value = data.domSnippet || 'No DOM snippet captured yet';
+                    obsTimestamp.innerText = `Timestamp: ${data.timestamp ? new Date(data.timestamp).toLocaleString() : 'N/A'}`;
+                    log('Observation state successfully loaded.', 'success');
+                } else {
+                    const errData = await response.json().catch(() => ({}));
+                    log(`Failed to fetch observation: ${errData.error || response.statusText}`, 'error');
+                    obsUrl.innerText = 'None';
+                    obsScreenshot.style.display = 'none';
+                    obsScreenshotPlaceholder.style.display = 'block';
+                    obsDom.value = errData.error || 'No observation data captured yet.';
+                    obsTimestamp.innerText = 'Timestamp: -';
+                }
+            } catch (err) {
+                log(`Failed to load observation: ${err.message}`, 'error');
+            } finally {
+                refreshObsBtn.disabled = false;
+                refreshObsBtn.innerText = 'Refresh Data';
+            }
+        }
+
+        monitorBtn.addEventListener('click', () => {
+            observationModal.style.display = 'flex';
+            loadObservationData();
+        });
+
+        const closeObsModal = () => {
+            observationModal.style.display = 'none';
+        };
+
+        closeObsModalBtn.addEventListener('click', closeObsModal);
+        observationModal.addEventListener('click', (e) => {
+            if (e.target === observationModal) {
+                closeObsModal();
+            }
+        });
+
+        refreshObsBtn.addEventListener('click', loadObservationData);
+
+        // Hide modal if clicked outside card
+        aiModal.addEventListener('click', (e) => {
+            if (e.target === aiModal) {
+                closeAiModal();
+            }
+        });
+
+        // Speech Recognition Setup
+        const startVoiceBtn = document.getElementById('startVoiceBtn');
+        const voiceOverlay = document.getElementById('voiceOverlay');
+        const voiceStatusText = document.getElementById('voiceStatusText');
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        let recognition = null;
+        let isListening = false;
+        let isVoicePaused = false;
+        let voiceTranscript = '';
+        let silenceTimer = null;
+        let voiceContinuousMode = false;
+
+        function updatePauseBtnUI(paused) {
+            const pauseBtnText = document.getElementById('pauseBtnText');
+            const pauseIcon = document.getElementById('pauseIcon');
+            const indicator = document.getElementById('voiceIndicator');
+            
+            if (paused) {
+                if (pauseBtnText) pauseBtnText.innerText = 'Resume';
+                if (pauseIcon) {
+                    // Play SVG icon
+                    pauseIcon.innerHTML = `
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    `;
+                }
+                if (indicator) {
+                    // Turn indicator gray/inactive
+                    indicator.style.background = '#6b7280';
+                    indicator.style.boxShadow = 'none';
+                    indicator.style.animation = 'none';
+                }
+            } else {
+                if (pauseBtnText) pauseBtnText.innerText = 'Pause';
+                if (pauseIcon) {
+                    // Pause SVG icon
+                    pauseIcon.innerHTML = `
+                        <rect id="pauseBar1" x="14" y="4" width="4" height="16" rx="1"></rect>
+                        <rect id="pauseBar2" x="6" y="4" width="4" height="16" rx="1"></rect>
+                    `;
+                }
+                if (indicator) {
+                    // Turn indicator pulsing purple/active
+                    indicator.style.background = '#a855f7';
+                    indicator.style.boxShadow = '0 0 10px #a855f7';
+                    indicator.style.animation = 'voice-pulse 1.5s infinite';
+                }
+            }
+        }
+
+        function closeVoiceOverlay() {
+            clearTimeout(silenceTimer);
+            voiceContinuousMode = false;
+            isVoicePaused = false;
+            voiceOverlay.style.display = 'none';
+            if (recognition && isListening) {
+                recognition.stop();
+            }
+        }
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = () => {
+                isListening = true;
+                if (!voiceStatusText.innerText.includes('Say next')) {
+                    voiceStatusText.innerText = 'Listening...';
+                }
+                log('Speech recognition started. Speak now.', 'info');
+
+                // Watchdog timer (15 seconds) in case of no speech at all
+                clearTimeout(silenceTimer);
+                silenceTimer = setTimeout(() => {
+                    if (voiceTranscript.trim() === '') {
+                        log('No speech detected. Pausing microphone.', 'info');
+                        isVoicePaused = true;
+                        updatePauseBtnUI(true);
+                        recognition.stop();
+                    }
+                }, 15000);
+            };
+
+            recognition.onresult = (event) => {
+                clearTimeout(silenceTimer);
+
+                let interim = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        voiceTranscript += event.results[i][0].transcript + ' ';
+                    } else {
+                        interim += event.results[i][0].transcript;
+                    }
+                }
+                if (voiceTranscript) {
+                    voiceStatusText.innerText = `Matched: "${voiceTranscript.trim()}"`;
+                }
+
+                // SILENCE DETECTION TIMEOUT (in milliseconds)
+                // This decides how long to wait after you stop speaking before the command is automatically processed and moved to the control console.
+                // You can change this value (e.g., 1000 for 1 second, 2000 for 2 seconds) according to your convenience.
+                const silenceDetectionDelay = 1000;
+
+                silenceTimer = setTimeout(() => {
+                    log('Silence detected. Sending voice request for translation...', 'info');
+                    if (recognition && isListening) {
+                        recognition.stop();
+                    }
+                }, silenceDetectionDelay);
+            };
+
+            recognition.onerror = (event) => {
+                log(`Speech recognition error: ${event.error}`, 'error');
+                voiceStatusText.innerText = `Error: ${event.error}`;
+                isVoicePaused = true;
+                updatePauseBtnUI(true);
+                if (recognition && isListening) {
+                    recognition.stop();
+                }
+            };
+
+            recognition.onend = async () => {
+                isListening = false;
+
+                if (isVoicePaused) {
+                    voiceStatusText.innerText = 'Paused';
+                    updatePauseBtnUI(true);
+                    return;
+                }
+
+                const task = voiceTranscript.trim();
+                voiceTranscript = '';
+
+                if (task) {
+                    await processVoiceCommand(task);
+                }
+
+                // If continuous mode is enabled, immediately restart listening
+                if (voiceContinuousMode) {
+                    voiceTranscript = '';
+                    voiceStatusText.innerText = 'Listening (Say next command)...';
+                    updatePauseBtnUI(false);
+                    try {
+                        recognition.start();
+                    } catch (e) {
+                        console.error('Error restarting recognition:', e);
+                    }
+                } else {
+                    // Do not close automatically, transition to idle/paused state
+                    isVoicePaused = true;
+                    updatePauseBtnUI(true);
+                    voiceStatusText.innerText = 'Idle. Click Resume to speak.';
+                }
+            };
+        } else {
+            startVoiceBtn.style.display = 'none';
+            console.warn('Speech Recognition API not supported in this browser.');
+        }
+
+        async function processVoiceCommand(task) {
+            log(`Voice input recognized: "${task}". Sending task to AI...`);
+            loaderOverlay.classList.add('active');
+
+            try {
+                const response = await fetch(`${serverUrl}/translate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ task })
+                });
+                const data = await response.json();
+                if (data.success && data.code) {
+                    log('Playwright code successfully generated by AI from voice input!', 'success');
+                    commandEditor.value = data.code;
+
+                    // Auto-execute if toggle switch is ON
+                    if (document.getElementById('autoExecuteToggle').checked) {
+                        log('Auto-Execute Mode is active. Automatically running the generated code...', 'info');
+                        executeScript();
+                    }
+                } else {
+                    log(`Failed to generate code: ${data.error || 'Unknown error'}`, 'error');
+                }
+            } catch (err) {
+                log(`API error: ${err.message}`, 'error');
+            } finally {
+                loaderOverlay.classList.remove('active');
+            }
+        }
+
+        startVoiceBtn.addEventListener('click', () => {
+            if (!recognition) {
+                alert('Speech recognition is not supported in this browser. Please use Google Chrome.');
+                return;
+            }
+            closeAiModal();
+            voiceOverlay.style.display = 'flex';
+            voiceTranscript = '';
+            voiceContinuousMode = true; // Enable continuous voice session!
+            isVoicePaused = false;
+            updatePauseBtnUI(false);
+            try {
+                recognition.start();
+            } catch (err) {
+                console.error('Error starting recognition:', err);
+            }
+        });
+
+        // Pause/Resume and Close button event listeners
+        const voicePauseBtn = document.getElementById('voicePauseBtn');
+        const voiceCloseBtn = document.getElementById('voiceCloseBtn');
+
+        if (voicePauseBtn) {
+            voicePauseBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (!recognition) return;
+                
+                if (isVoicePaused) {
+                    // Resume
+                    isVoicePaused = false;
+                    updatePauseBtnUI(false);
+                    voiceStatusText.innerText = 'Listening...';
+                    if (!isListening) {
+                        try {
+                            recognition.start();
+                        } catch (err) {
+                            console.error('Error starting recognition:', err);
+                        }
+                    }
+                } else {
+                    // Pause
+                    isVoicePaused = true;
+                    updatePauseBtnUI(true);
+                    voiceStatusText.innerText = 'Paused';
+                    if (isListening) {
+                        recognition.stop();
+                    }
+                }
+            });
+        }
+
+        if (voiceCloseBtn) {
+            voiceCloseBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                closeVoiceOverlay();
+            });
+        }
+
+        // Google Sheets Integration for AI Mode
+        const connectSheetTabsBtn = document.getElementById('connectSheetTabsBtn');
+        const sheetsCheckboxesContainer = document.getElementById('sheetsCheckboxesContainer');
+        const sheetsCheckboxGrid = document.getElementById('sheetsCheckboxGrid');
+
+        connectSheetTabsBtn.addEventListener('click', async () => {
+            connectSheetTabsBtn.disabled = true;
+            connectSheetTabsBtn.innerText = 'Connecting...';
+            
+            try {
+                const response = await fetch(`${serverUrl}/get-sheets`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const result = await response.json();
+                
+                if (result.success && result.sheets && result.sheets.length > 0) {
+                    sheetsCheckboxGrid.innerHTML = '';
+                    result.sheets.forEach(sheetName => {
+                        const wrapper = document.createElement('label');
+                        wrapper.style.display = 'flex';
+                        wrapper.style.alignItems = 'center';
+                        wrapper.style.gap = '0.5rem';
+                        wrapper.style.padding = '0.4rem 0.6rem';
+                        wrapper.style.background = 'rgba(255,255,255,0.03)';
+                        wrapper.style.border = '1px solid var(--border-color)';
+                        wrapper.style.borderRadius = '6px';
+                        wrapper.style.cursor = 'pointer';
+                        wrapper.style.fontSize = '0.75rem';
+                        wrapper.style.userSelect = 'none';
+                        wrapper.style.whiteSpace = 'nowrap';
+                        wrapper.style.overflow = 'hidden';
+                        wrapper.style.textOverflow = 'ellipsis';
+                        
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.value = sheetName;
+                        checkbox.style.cursor = 'pointer';
+                        checkbox.style.accentColor = '#10b981';
+                        
+                        checkbox.addEventListener('change', () => {
+                            if (checkbox.checked) {
+                                wrapper.style.borderColor = '#10b981';
+                                wrapper.style.background = 'rgba(16, 185, 129, 0.05)';
+                            } else {
+                                wrapper.style.borderColor = 'var(--border-color)';
+                                wrapper.style.background = 'rgba(255,255,255,0.03)';
+                            }
+                        });
+                        
+                        wrapper.appendChild(checkbox);
+                        wrapper.appendChild(document.createTextNode(sheetName));
+                        sheetsCheckboxGrid.appendChild(wrapper);
+                    });
+                    
+                    sheetsCheckboxesContainer.style.display = 'flex';
+                    log(`Successfully fetched ${result.sheets.length} sheet tabs from Google Sheets!`, 'success');
+                } else {
+                    alert('No sheet tabs found or failed to load.');
+                }
+            } catch (err) {
+                log(`Failed to fetch sheets: ${err.message}`, 'error');
+                alert(`Failed to fetch sheets: ${err.message}`);
+            } finally {
+                connectSheetTabsBtn.disabled = false;
+                connectSheetTabsBtn.innerText = 'Refresh Tabs';
+            }
+        });
+
+        // Local JSON Integration for AI Mode
+        const connectJsonFilesBtn = document.getElementById('connectJsonFilesBtn');
+        const jsonFilesContainer = document.getElementById('jsonFilesContainer');
+        const jsonCheckboxGrid = document.getElementById('jsonCheckboxGrid');
+
+        connectJsonFilesBtn.addEventListener('click', async () => {
+            connectJsonFilesBtn.disabled = true;
+            connectJsonFilesBtn.innerText = 'Connecting...';
+            
+            try {
+                const response = await fetch(`${serverUrl}/list-clean-json`);
+                const result = await response.json();
+                
+                if (result.success && result.files && result.files.length > 0) {
+                    jsonCheckboxGrid.innerHTML = '';
+                    result.files.forEach(fileName => {
+                        const wrapper = document.createElement('label');
+                        wrapper.style.display = 'flex';
+                        wrapper.style.alignItems = 'center';
+                        wrapper.style.gap = '0.5rem';
+                        wrapper.style.padding = '0.4rem 0.6rem';
+                        wrapper.style.background = 'rgba(255,255,255,0.03)';
+                        wrapper.style.border = '1px solid var(--border-color)';
+                        wrapper.style.borderRadius = '6px';
+                        wrapper.style.cursor = 'pointer';
+                        wrapper.style.fontSize = '0.75rem';
+                        wrapper.style.userSelect = 'none';
+                        wrapper.style.whiteSpace = 'nowrap';
+                        wrapper.style.overflow = 'hidden';
+                        wrapper.style.textOverflow = 'ellipsis';
+                        
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.value = fileName;
+                        checkbox.style.cursor = 'pointer';
+                        checkbox.style.accentColor = '#6366f1';
+                        
+                        checkbox.addEventListener('change', () => {
+                            if (checkbox.checked) {
+                                wrapper.style.borderColor = '#6366f1';
+                                wrapper.style.background = 'rgba(99, 102, 241, 0.05)';
+                            } else {
+                                wrapper.style.borderColor = 'var(--border-color)';
+                                wrapper.style.background = 'rgba(255,255,255,0.03)';
+                            }
+                        });
+                        
+                        wrapper.appendChild(checkbox);
+                        wrapper.appendChild(document.createTextNode(fileName + '.json'));
+                        jsonCheckboxGrid.appendChild(wrapper);
+                    });
+                    
+                    jsonFilesContainer.style.display = 'flex';
+                    log(`Successfully fetched ${result.files.length} clean JSON files from Storing_Clean_JSON!`, 'success');
+                } else {
+                    jsonCheckboxGrid.innerHTML = '<span style="font-size: 0.75rem; color: var(--text-muted); padding: 0.25rem;">No local JSON files found.</span>';
+                    jsonFilesContainer.style.display = 'flex';
+                    log('No local JSON files found in Storing_Clean_JSON folder.', 'warning');
+                }
+            } catch (err) {
+                log(`Failed to fetch JSON files: ${err.message}`, 'error');
+                alert(`Failed to fetch JSON files: ${err.message}`);
+            } finally {
+                connectJsonFilesBtn.disabled = false;
+                connectJsonFilesBtn.innerText = 'Refresh JSON List';
+            }
+        });
+
+        generateAiBtn.addEventListener('click', async () => {
+            const task = aiPromptInput.value.trim();
+            if (!task) {
+                alert('Please enter a description of the task.');
+                return;
+            }
+
+            // Get selected sheets/tabs
+            const selectedSheets = [];
+            const checkboxes = sheetsCheckboxGrid.querySelectorAll('input[type="checkbox"]:checked');
+            checkboxes.forEach(cb => selectedSheets.push(cb.value));
+
+            // Get selected local JSON files
+            const selectedJsonFiles = [];
+            const jsonCheckboxGrid = document.getElementById('jsonCheckboxGrid');
+            const jsonCheckboxes = jsonCheckboxGrid ? jsonCheckboxGrid.querySelectorAll('input[type="checkbox"]:checked') : [];
+            jsonCheckboxes.forEach(cb => selectedJsonFiles.push(cb.value));
+
+            log(`Sending natural language task to AI: "${task}"...`);
+            loaderOverlay.classList.add('active');
+            generateAiBtn.disabled = true;
+            generateAiBtn.innerText = 'Generating...';
+
+            try {
+                // Read current Max Tabs setting
+                let maxTabs = 'all';
+                if (maxTabsSelect) {
+                    if (maxTabsSelect.value === 'custom' && maxTabsCustomInput && maxTabsCustomInput.value) {
+                        maxTabs = parseInt(maxTabsCustomInput.value) || 'all';
+                    } else if (maxTabsSelect.value !== 'custom') {
+                        maxTabs = maxTabsSelect.value;
+                    }
+                }
+                const maxTabsInstruction = `\n\n[Max Tabs Configuration: Output sequential, linear, flat Playwright statements to open exactly ${maxTabs === 'all' ? 'ALL available' : maxTabs} product tabs. Sort products as requested in your reasoning and output each 'newTabAccess.openNewTab(context, URL)' command sequentially, one after another, up to a maximum of ${maxTabs === 'all' ? 100 : maxTabs} tabs. DO NOT write loop constructs, sorting logic, or array slices in the code.]`;
+
+                // Fetch the data of the selected sheets only if the task is related to sheet data
+                let sheetDataContext = "";
+                let finalInstruction = "";
+                const isSheetTask = /sheet|product|tab|record|price|sort|excel|row|col|link|item|decreasing|increasing/i.test(task);
+
+                if (selectedSheets.length > 0 && isSheetTask) {
+                    log(`Fetching data from selected sheets: ${selectedSheets.join(', ')}...`, 'info');
+                    const readResponse = await fetch(`${serverUrl}/read-sheets`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ sheetNames: selectedSheets })
+                    });
+                    const readResult = await readResponse.json();
+                    if (readResult.success && readResult.data) {
+                        const cleanSheetData = {};
+                        for (const [tabName, items] of Object.entries(readResult.data)) {
+                            if (Array.isArray(items)) {
+                                cleanSheetData[tabName] = items.map((item, idx) => ({
+                                    id: item.id || (idx + 1),
+                                    title: (item.title || item.name || '').substring(0, 90).replace(/\\n|\\r|\\t/g, ' ').replace(/[\r\n\s]+/g, ' '),
+                                    price: typeof item.price === 'number' ? item.price : (parseFloat(String(item.price || 0).replace(/[^0-9.]/g, '')) || 0),
+                                    url: (item.url || item.link || item.href || '').replace(/\\n|\\r|\\t/g, '').replace(/[\r\n\s]+/g, '')
+                                }));
+                            }
+                        }
+                        sheetDataContext = "\n\nConnected Google Sheets Data:\n" + JSON.stringify(cleanSheetData, null, 2);
+                        finalInstruction = maxTabsInstruction;
+                        log(`Successfully loaded records from ${selectedSheets.length} sheet tabs into AI Context!`, 'success');
+                    }
+                }
+
+                // Fetch local JSON file contents if selected
+                let localJsonContext = "";
+                if (selectedJsonFiles.length > 0) {
+                    log(`Fetching data from selected local JSON files: ${selectedJsonFiles.join(', ')}...`, 'info');
+                    const readResponse = await fetch(`${serverUrl}/read-clean-json`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ files: selectedJsonFiles })
+                    });
+                    const readResult = await readResponse.json();
+                    if (readResult.success && readResult.data) {
+                        const cleanJsonData = {};
+                        for (const [fileName, items] of Object.entries(readResult.data)) {
+                            if (Array.isArray(items)) {
+                                cleanJsonData[fileName] = items.map((item, idx) => ({
+                                    id: item.id || (idx + 1),
+                                    title: (item.title || item.name || '').substring(0, 90).replace(/\n|\r|\t/g, ' ').replace(/[\r\n\s]+/g, ' '),
+                                    price: typeof item.price === 'number' ? item.price : (parseFloat(String(item.price || 0).replace(/[^0-9.]/g, '')) || 0),
+                                    url: (item.url || item.link || item.href || '').replace(/\n|\r|\t/g, '').replace(/[\r\n\s]+/g, '')
+                                }));
+                            }
+                        }
+                        localJsonContext = "\n\nConnected JSON Data:\n" + JSON.stringify(cleanJsonData, null, 2);
+                        finalInstruction = maxTabsInstruction;
+                        log(`Successfully loaded records from ${selectedJsonFiles.length} local JSON files into AI Context!`, 'success');
+                    }
+                }
+
+                const response = await fetch(`${serverUrl}/translate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ task: task + sheetDataContext + localJsonContext + finalInstruction })
+                });
+                const data = await response.json();
+                if (data.success && data.code) {
+                    log('Playwright code successfully generated by AI!', 'success');
+                    commandEditor.value = data.code;
+                    closeAiModal();
+                    // Auto-execute if toggle switch is ON
+                    if (document.getElementById('autoExecuteToggle').checked) {
+                        log('Auto-Execute Mode is active. Automatically running the generated code...', 'info');
+                        executeScript();
+                    }
+                } else {
+                    log(`Failed to generate code: ${data.error || 'Unknown error'}`, 'error');
+                    alert(`Error generating code: ${data.error || 'Unknown error'}`);
+                }
+            } catch (err) {
+                log(`API error: ${err.message}`, 'error');
+                alert(`API error: ${err.message}`);
+            } finally {
+                loaderOverlay.classList.remove('active');
+                generateAiBtn.disabled = false;
+                generateAiBtn.innerText = 'Generate Code';
+            }
+        });
+
+
+        sendTextBtn.addEventListener('click', sendText);
+        keyboardInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                sendText();
+            }
+        });
+        sendEnterBtn.addEventListener('click', () => sendKey('Enter'));
+        browserSelect.addEventListener('change', resetBrowser);
+
+        // Check backend status on load
+        async function checkStatus() {
+            try {
+                // Fetch current active channel state first to keep multiple tabs synced
+                const stateRes = await fetch(`${serverUrl}/state`);
+                if (stateRes.ok) {
+                    const stateData = await stateRes.json();
+                    if (stateData.channel) {
+                        browserSelect.value = stateData.channel;
+                        updatePlaceholderText();
+                    }
+                }
+
+                const response = await fetch(`${serverUrl}/screenshot`);
+                if (response.ok) {
+                    const data = await response.json();
+                    setConnectionStatus(true);
+                    if (data.screenshot) {
+                        updatePreview(data.screenshot);
+                    }
+                }
+            } catch (err) {
+                setConnectionStatus(false);
+                log('Could not connect to browser backend server. Please run "node server.js" first.', 'error');
+            }
+        }
+
+        // Initial check
+        checkStatus();
+
+        // Auto-poll screenshot every 2 seconds to make the UI feel live
+        setInterval(fetchScreenshot, 2000);
+
+        // ==========================================
+        // WEB SCRAPING INTELLIGENCE SYSTEM
+        // ==========================================
+        const scrapeBtn = document.getElementById('scrapeBtn');
+        const scrapeModal = document.getElementById('scrapeModal');
+        const closeScrapeModalBtn = document.getElementById('closeScrapeModalBtn');
+        const scrapeRefreshBtn = document.getElementById('scrapeRefreshBtn');
+        const scrapePageTitle = document.getElementById('scrapePageTitle');
+        const scrapePageUrl = document.getElementById('scrapePageUrl');
+        const scrapeSearchInput = document.getElementById('scrapeSearchInput');
+        const copyScrapeJsonBtn = document.getElementById('copyScrapeJsonBtn');
+        const downloadScrapeJsonBtn = document.getElementById('downloadScrapeJsonBtn');
+        const scrapeTabHeaders = document.getElementById('scrapeTabHeaders');
+        const scrapeTimestamp = document.getElementById('scrapeTimestamp');
+        
+        const statHeadings = document.getElementById('statHeadings');
+        const statTables = document.getElementById('statTables');
+        const statLinks = document.getElementById('statLinks');
+        const statImages = document.getElementById('statImages');
+        const statSchemas = document.getElementById('statSchemas');
+        
+        const scrapeMetadataOverview = document.getElementById('scrapeMetadataOverview');
+        const scrapeJsonViewer = document.getElementById('scrapeJsonViewer');
+        const scrapeTablesContainer = document.getElementById('scrapeTablesContainer');
+        const scrapeSchemaContainer = document.getElementById('scrapeSchemaContainer');
+        const scrapeLinksList = document.getElementById('scrapeLinksList');
+        const scrapeImagesGrid = document.getElementById('scrapeImagesGrid');
+
+        let currentScrapedData = null;
+        let currentCleanData = null;
+        let activeScrapeTab = 'overview';
+
+        // Trigger Scrape function
+        async function runScraper() {
+            log('Initiating page scrape extraction...');
+            loaderOverlay.classList.add('active');
+            try {
+                const response = await fetch(`${serverUrl}/scrape`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    log('Page scraped successfully!', 'success');
+                    currentScrapedData = result.data;
+                    populateScrapeModal(result.data);
+                    scrapeModal.style.display = 'flex';
+                } else {
+                    log(`Scrape failed: ${result.error || 'Unknown error'}`, 'error');
+                    alert(`Failed to scrape page: ${result.error || 'Unknown error'}`);
+                }
+            } catch (err) {
+                log(`Scraper network error: ${err.message}`, 'error');
+                alert(`Scraper network error: ${err.message}`);
+            } finally {
+                loaderOverlay.classList.remove('active');
+            }
+        }
+
+        // Populate Modal contents
+        function populateScrapeModal(data) {
+            // URL, Title, Timestamp
+            scrapePageTitle.innerText = data.title || 'N/A';
+            scrapePageUrl.innerText = data.url || 'None';
+            scrapePageUrl.href = data.url || '#';
+            scrapeTimestamp.innerText = `Scrape Time: ${data.timestamp ? new Date(data.timestamp).toLocaleString() : 'N/A'}`;
+            
+            // Statistics
+            statHeadings.innerText = data.headings ? data.headings.length : 0;
+            statTables.innerText = data.tables ? data.tables.length : 0;
+            statLinks.innerText = data.links ? data.links.length : 0;
+            statImages.innerText = data.images ? data.images.length : 0;
+            statSchemas.innerText = data.jsonLd ? data.jsonLd.length : 0;
+
+            // Clear filter search
+            scrapeSearchInput.value = '';
+
+            // Hide clean tab header and reset text areas by default
+            document.getElementById('cleanTabHeader').style.display = 'none';
+            document.getElementById('cleanJsonViewer').value = '';
+            currentCleanData = null;
+
+            // Render Tab: Overview (Metadata)
+            scrapeMetadataOverview.innerHTML = '';
+            const metaKeys = Object.keys(data.meta || {});
+            if (metaKeys.length === 0) {
+                scrapeMetadataOverview.innerHTML = '<div style="color: var(--text-muted);">No metadata tags found.</div>';
+            } else {
+                metaKeys.forEach(key => {
+                    const row = document.createElement('div');
+                    row.style.display = 'flex';
+                    row.style.padding = '0.25rem 0';
+                    row.style.borderBottom = '1px solid rgba(255, 255, 255, 0.02)';
+                    row.innerHTML = `
+                        <strong style="color: #60a5fa; width: 180px; flex-shrink: 0; word-break: break-all;">${escapeHtml(key)}:</strong>
+                        <span style="color: var(--text-main); word-break: break-all;">${escapeHtml(data.meta[key])}</span>
+                    `;
+                    scrapeMetadataOverview.appendChild(row);
+                });
+            }
+
+            // Render Tab: JSON
+            scrapeJsonViewer.value = JSON.stringify(data, null, 2);
+
+            // Render Tab: Tables
+            scrapeTablesContainer.innerHTML = '';
+            if (!data.tables || data.tables.length === 0) {
+                scrapeTablesContainer.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 2rem;">No data tables detected on the page.</div>';
+            } else {
+                data.tables.forEach(table => {
+                    const tableWrapper = document.createElement('div');
+                    tableWrapper.style.border = '1px solid var(--border-color)';
+                    tableWrapper.style.borderRadius = '8px';
+                    tableWrapper.style.padding = '0.75rem';
+                    tableWrapper.style.background = 'rgba(255,255,255,0.01)';
+                    tableWrapper.style.marginBottom = '1rem';
+                    tableWrapper.innerHTML = `
+                        <h4 style="font-size: 0.85rem; color: #a7f3d0; margin-bottom: 0.5rem;">Table #${table.index}</h4>
+                        <div style="overflow-x: auto;">
+                            <table class="scraped-table">
+                                <thead>
+                                    <tr>
+                                        ${table.headers.map(h => `<th>${escapeHtml(h)}</th>`).join('')}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${table.rows.map(row => `
+                                        <tr>
+                                            ${row.map(cell => `<td>${escapeHtml(cell)}</td>`).join('')}
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                    scrapeTablesContainer.appendChild(tableWrapper);
+                });
+            }
+
+            // Render Tab: Schema JSON-LD
+            scrapeSchemaContainer.innerHTML = '';
+            if (!data.jsonLd || data.jsonLd.length === 0) {
+                scrapeSchemaContainer.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 2rem;">No JSON-LD schema blocks found.</div>';
+            } else {
+                data.jsonLd.forEach((schema, idx) => {
+                    const block = document.createElement('div');
+                    block.style.border = '1px solid var(--border-color)';
+                    block.style.borderRadius = '8px';
+                    block.style.padding = '0.5rem';
+                    block.style.background = 'rgba(0,0,0,0.2)';
+                    block.style.marginBottom = '0.75rem';
+                    
+                    const codeArea = document.createElement('textarea');
+                    codeArea.readOnly = true;
+                    codeArea.value = JSON.stringify(schema, null, 2);
+                    codeArea.style.width = '100%';
+                    codeArea.style.height = '140px';
+                    codeArea.style.background = 'transparent';
+                    codeArea.style.border = 'none';
+                    codeArea.style.color = '#fbbf24';
+                    codeArea.style.fontFamily = 'JetBrains Mono, monospace';
+                    codeArea.style.fontSize = '0.75rem';
+                    codeArea.style.resize = 'vertical';
+                    codeArea.style.outline = 'none';
+                    
+                    block.innerHTML = `<h4 style="font-size: 0.8rem; color: #fbbf24; margin-bottom: 0.25rem;">Schema Block #${idx + 1}</h4>`;
+                    block.appendChild(codeArea);
+                    scrapeSchemaContainer.appendChild(block);
+                });
+            }
+
+            // Render Tab: Links List
+            scrapeLinksList.innerHTML = '';
+            if (!data.links || data.links.length === 0) {
+                scrapeLinksList.innerHTML = '<div style="color: var(--text-muted);">No links found.</div>';
+            } else {
+                data.links.forEach(link => {
+                    const item = document.createElement('div');
+                    item.style.padding = '0.35rem 0.5rem';
+                    item.style.borderRadius = '4px';
+                    item.style.background = 'rgba(255, 255, 255, 0.01)';
+                    item.style.border = '1px solid rgba(255, 255, 255, 0.03)';
+                    item.style.marginBottom = '0.25rem';
+                    item.innerHTML = `
+                        <div style="font-weight: 600; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(link.text)}">${escapeHtml(link.text)}</div>
+                        <a href="${link.href}" target="_blank" style="color: #60a5fa; font-size: 0.75rem; word-break: break-all;">${escapeHtml(link.href)}</a>
+                    `;
+                    scrapeLinksList.appendChild(item);
+                });
+            }
+
+            // Render Tab: Images Grid
+            scrapeImagesGrid.innerHTML = '';
+            if (!data.images || data.images.length === 0) {
+                scrapeImagesGrid.innerHTML = '<div style="color: var(--text-muted); grid-column: 1/-1; text-align: center; padding: 1rem;">No images found.</div>';
+            } else {
+                data.images.forEach(img => {
+                    const wrapper = document.createElement('div');
+                    wrapper.style.border = '1px solid var(--border-color)';
+                    wrapper.style.borderRadius = '6px';
+                    wrapper.style.background = 'rgba(0,0,0,0.3)';
+                    wrapper.style.overflow = 'hidden';
+                    wrapper.style.display = 'flex';
+                    wrapper.style.flexDirection = 'column';
+                    wrapper.style.alignItems = 'center';
+                    wrapper.style.padding = '0.25rem';
+                    
+                    const thumbnail = document.createElement('img');
+                    thumbnail.src = img.src;
+                    thumbnail.alt = img.alt;
+                    thumbnail.style.width = '100%';
+                    thumbnail.style.height = '60px';
+                    thumbnail.style.objectFit = 'cover';
+                    thumbnail.style.borderRadius = '4px';
+                    thumbnail.onerror = () => {
+                        thumbnail.style.display = 'none';
+                        const fallback = document.createElement('div');
+                        fallback.style.fontSize = '0.6rem';
+                        fallback.style.height = '60px';
+                        fallback.style.color = 'var(--text-muted)';
+                        fallback.style.display = 'flex';
+                        fallback.style.alignItems = 'center';
+                        fallback.style.justifyContent = 'center';
+                        fallback.textContent = 'Err Img';
+                        wrapper.insertBefore(fallback, wrapper.firstChild);
+                    };
+
+                    const caption = document.createElement('div');
+                    caption.style.fontSize = '0.65rem';
+                    caption.style.color = 'var(--text-muted)';
+                    caption.style.textAlign = 'center';
+                    caption.style.marginTop = '0.2rem';
+                    caption.style.width = '100%';
+                    caption.style.whiteSpace = 'nowrap';
+                    caption.style.overflow = 'hidden';
+                    caption.style.textOverflow = 'ellipsis';
+                    caption.innerText = img.alt || 'untitled';
+                    caption.title = img.alt || img.src;
+                    
+                    wrapper.appendChild(thumbnail);
+                    wrapper.appendChild(caption);
+                    
+                    // Add click to open image
+                    wrapper.style.cursor = 'pointer';
+                    wrapper.addEventListener('click', () => window.open(img.src, '_blank'));
+                    
+                    scrapeImagesGrid.appendChild(wrapper);
+                });
+            }
+        }
+
+        // Tab selection logic
+        scrapeTabHeaders.addEventListener('click', (e) => {
+            const tabBtn = e.target.closest('[data-tab]');
+            if (!tabBtn) return;
+            
+            const selectedTab = tabBtn.getAttribute('data-tab');
+            activeScrapeTab = selectedTab;
+            
+            // Highlight active tab chip
+            Array.from(scrapeTabHeaders.children).forEach(chip => {
+                if (chip === tabBtn) {
+                    chip.style.background = 'rgba(16, 185, 129, 0.15)';
+                    chip.style.borderColor = 'var(--accent-green)';
+                    chip.style.color = '#a7f3d0';
+                } else {
+                    chip.style.background = '';
+                    chip.style.borderColor = '';
+                    chip.style.color = '';
+                }
+            });
+
+            // Display active tab contents
+            const contents = document.getElementById('scrapeTabContents');
+            Array.from(contents.children).forEach(contentPanel => {
+                if (contentPanel.id === `scrapeTabContent-${selectedTab}`) {
+                    contentPanel.style.display = 'block';
+                } else {
+                    contentPanel.style.display = 'none';
+                }
+            });
+        });
+
+        // Filter / Search function
+        scrapeSearchInput.addEventListener('input', () => {
+            const query = scrapeSearchInput.value.toLowerCase().trim();
+            if (!currentScrapedData) return;
+
+            // Overview Filter
+            const metaRows = scrapeMetadataOverview.querySelectorAll('div');
+            metaRows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                row.style.display = text.includes(query) ? 'flex' : 'none';
+            });
+
+            // Tables Filter
+            const tableBlocks = scrapeTablesContainer.children;
+            Array.from(tableBlocks).forEach(block => {
+                const text = block.innerText.toLowerCase();
+                block.style.display = text.includes(query) ? 'block' : 'none';
+            });
+
+            // Schemas Filter
+            const schemaBlocks = scrapeSchemaContainer.children;
+            Array.from(schemaBlocks).forEach(block => {
+                const textarea = block.querySelector('textarea');
+                const text = textarea ? textarea.value.toLowerCase() : '';
+                block.style.display = text.includes(query) ? 'block' : 'none';
+            });
+
+            // Links Filter
+            const linkItems = scrapeLinksList.children;
+            Array.from(linkItems).forEach(item => {
+                const text = item.innerText.toLowerCase();
+                item.style.display = text.includes(query) ? 'block' : 'none';
+            });
+
+            // Images Filter
+            const imageItems = scrapeImagesGrid.children;
+            Array.from(imageItems).forEach(item => {
+                const text = item.innerText.toLowerCase();
+                item.style.display = text.includes(query) ? 'flex' : 'none';
+            });
+        });
+
+        // Copy JSON Button
+        copyScrapeJsonBtn.addEventListener('click', () => {
+            if (!currentScrapedData) return;
+            navigator.clipboard.writeText(JSON.stringify(currentScrapedData, null, 2))
+                .then(() => {
+                    const originalText = copyScrapeJsonBtn.innerHTML;
+                    copyScrapeJsonBtn.innerText = 'Copied!';
+                    setTimeout(() => {
+                        copyScrapeJsonBtn.innerHTML = originalText;
+                    }, 2000);
+                    log('Scraped JSON copied to clipboard.', 'success');
+                })
+                .catch(err => {
+                    log(`Failed to copy JSON: ${err.message}`, 'error');
+                });
+        });
+
+        // Download JSON Button
+        downloadScrapeJsonBtn.addEventListener('click', () => {
+            if (!currentScrapedData) return;
+            try {
+                const blob = new Blob([JSON.stringify(currentScrapedData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                // Generate filename based on website host / timestamp
+                let hostname = 'page';
+                try {
+                    hostname = new URL(currentScrapedData.url).hostname;
+                } catch(_) {}
+                a.download = `scraped_${hostname}_${Date.now()}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                log('Downloaded scraped JSON file successfully.', 'success');
+            } catch (err) {
+                log(`Failed to download JSON: ${err.message}`, 'error');
+            }
+        });
+
+        // Get Data Button (DOM Management & Accessibility Engine - Instant & Zero Cost)
+        const getDomDataBtn = document.getElementById('getDomDataBtn');
+        const cleanDataBtn = document.getElementById('cleanDataBtn');
+        const cleanTabHeader = document.getElementById('cleanTabHeader');
+        const cleanJsonViewer = document.getElementById('cleanJsonViewer');
+        const downloadCleanJsonBtn = document.getElementById('downloadCleanJsonBtn');
+        const exportToSheetsBtn = document.getElementById('exportToSheetsBtn');
+        const sheetNameInput = document.getElementById('sheetNameInput');
+
+        if (getDomDataBtn) {
+            getDomDataBtn.addEventListener('click', async () => {
+                log('Extracting clean structured records via DOM Management & Accessibility Tree...', 'info');
+                
+                cleanTabHeader.style.display = 'block';
+                cleanTabHeader.click();
+                cleanJsonViewer.value = '// Running deterministic DOM & Accessibility tree extraction...\n// Extracting normalized records (0 API calls)...';
+
+                try {
+                    const response = await fetch(`${serverUrl}/get-dom-data`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    if (result.success && result.data) {
+                        currentCleanData = result.data;
+                        cleanJsonViewer.value = JSON.stringify(result.data, null, 2);
+                        log(`Successfully extracted ${result.count} clean records via DOM Management in <50ms!`, 'success');
+                    } else {
+                        throw new Error(result.error || 'Failed to extract DOM data');
+                    }
+                } catch (err) {
+                    log(`DOM extraction error: ${err.message}`, 'error');
+                    cleanJsonViewer.value = `// DOM Extraction error:\n// ${err.message}`;
+                }
+            });
+        }
+
+        cleanDataBtn.addEventListener('click', async () => {
+            if (!currentScrapedData) {
+                alert('No scraped data to clean.');
+                return;
+            }
+            log('Sending scraped data to LLM for cleaning and structure extraction...', 'info');
+            
+            // Show loading in Clean Tab and show/select tab
+            cleanJsonViewer.value = '// Processing data with LLM based on command history...\n// Please wait up to 30-45 seconds for DeepSeek completion...';
+            cleanTabHeader.style.display = 'block';
+            
+            // Auto switch to tab "clean"
+            cleanTabHeader.click();
+            
+            try {
+                const response = await fetch(`${serverUrl}/clean-data`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        scrapedData: currentScrapedData,
+                        commands: executedCommands
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                // Clear viewer before starting stream
+                cleanJsonViewer.value = '';
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder('utf-8');
+                let accumulatedText = '';
+                let done = false;
+
+                while (!done) {
+                    const { value, done: readerDone } = await reader.read();
+                    done = readerDone;
+                    if (value) {
+                        const chunk = decoder.decode(value, { stream: !done });
+                        accumulatedText += chunk;
+
+                        // Strip the server-side browser-buffering padding if present
+                        let displayText = accumulatedText;
+                        if (displayText.startsWith('/* ') && displayText.includes(' */\n')) {
+                            const index = displayText.indexOf(' */\n');
+                            displayText = displayText.substring(index + 4);
+                        }
+
+                        // Check if the chunk contains the final data marker
+                        if (displayText.includes('__FINAL_DATA__')) {
+                            const parts = displayText.split('__FINAL_DATA__');
+                            // Parse the JSON data after the marker
+                            try {
+                                const finalPayload = JSON.parse(parts[parts.length - 1].trim());
+                                if (finalPayload.success && finalPayload.cleanData) {
+                                    log('Data cleaned successfully!', 'success');
+                                    currentCleanData = finalPayload.cleanData;
+                                    cleanJsonViewer.value = JSON.stringify(finalPayload.cleanData, null, 2);
+                                } else if (finalPayload.error) {
+                                    const errMsg = finalPayload.error;
+                                    log(`Data cleaning notice: ${errMsg}`, 'info');
+                                    cleanJsonViewer.value = parts[0].trim() + `\n\n// Info: ${errMsg}`;
+                                }
+                            } catch (e) {
+                                // Keep accumulating text if payload is partial
+                                cleanJsonViewer.value = displayText;
+                            }
+                        } else {
+                            // Append the partial text token stream to the textarea in real-time
+                            cleanJsonViewer.value = displayText;
+                            cleanJsonViewer.scrollTop = cleanJsonViewer.scrollHeight;
+                        }
+                    }
+                }
+
+                // Post-stream completion check: ensure currentCleanData is extracted if viewer has valid JSON
+                const finalExtracted = getAvailableCleanData();
+                if (finalExtracted) {
+                    currentCleanData = finalExtracted;
+                    cleanJsonViewer.value = JSON.stringify(finalExtracted, null, 2);
+                    log('Cleaned data is ready for export!', 'success');
+                }
+            } catch (err) {
+                log(`Cleaning network error: ${err.message}`, 'error');
+                cleanJsonViewer.value = `// Network error occurred:\n// ${err.message}`;
+            }
+        });
+
+        // Helper to extract JSON from memory or from the viewer directly
+        function getAvailableCleanData() {
+            if (currentCleanData && typeof currentCleanData === 'object' && Object.keys(currentCleanData).length > 0) {
+                return currentCleanData;
+            }
+            if (cleanJsonViewer && cleanJsonViewer.value) {
+                let text = cleanJsonViewer.value.trim();
+                if (text.includes('__FINAL_DATA__')) {
+                    const parts = text.split('__FINAL_DATA__');
+                    text = parts[parts.length - 1].trim();
+                }
+                // Strip markdown code fences if present
+                const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+                if (fenceMatch) text = fenceMatch[1].trim();
+
+                // Find first JSON object { ... } or array [ ... ]
+                const firstBrace = text.indexOf('{');
+                const firstBracket = text.indexOf('[');
+                let start = -1;
+                if (firstBrace !== -1 && firstBracket !== -1) start = Math.min(firstBrace, firstBracket);
+                else if (firstBrace !== -1) start = firstBrace;
+                else if (firstBracket !== -1) start = firstBracket;
+
+                if (start !== -1) {
+                    for (let end = text.length; end > start; end--) {
+                        try {
+                            const candidate = JSON.parse(text.substring(start, end));
+                            if (candidate) {
+                                const cleanResult = candidate.cleanData || candidate;
+                                currentCleanData = cleanResult;
+                                return cleanResult;
+                            }
+                        } catch (_) {}
+                    }
+                }
+            }
+            return null;
+        }
+
+        downloadCleanJsonBtn.addEventListener('click', async () => {
+            const dataToDownload = getAvailableCleanData();
+            if (!dataToDownload) {
+                alert('No cleaned data to download. Please click "Get_Clean_data" first or paste JSON into the viewer.');
+                return;
+            }
+            try {
+                // Get filename from input or fallback
+                const nameInput = document.getElementById('cleanDataNameInput');
+                let fileName = nameInput ? nameInput.value.trim() : '';
+                if (!fileName) {
+                    const urlInput = document.getElementById('urlInput');
+                    const hostname = urlInput && urlInput.value ? new URL(urlInput.value).hostname.replace('www.', '') : 'page';
+                    fileName = `cleaned_${hostname}_${Date.now()}`;
+                }
+                
+                // 1. Local Browser Download
+                const blob = new Blob([JSON.stringify(dataToDownload, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${fileName}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                log(`Downloaded clean JSON locally as "${fileName}.json".`, 'success');
+
+                // 2. Direct Server Save
+                log(`Saving JSON directly to server folder Storing_Clean_JSON/ as "${fileName}.json"...`, 'info');
+                const saveResponse = await fetch(`${serverUrl}/save-clean-json`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: fileName, data: dataToDownload })
+                });
+                const saveResult = await saveResponse.json();
+                if (saveResult.success) {
+                    log(saveResult.message, 'success');
+                } else {
+                    log(`Failed to save JSON on server: ${saveResult.error}`, 'error');
+                }
+            } catch (err) {
+                log(`Failed to download/save clean JSON: ${err.message}`, 'error');
+            }
+        });
+
+        // Export to Google Sheets Button
+        exportToSheetsBtn.addEventListener('click', async () => {
+            const dataToExport = getAvailableCleanData();
+            if (!dataToExport) {
+                alert('No cleaned data to export. Please click "Get_Clean_data" first.');
+                return;
+            }
+            const sheetName = sheetNameInput.value.trim();
+            if (!sheetName) {
+                alert('Please enter a sheet name.');
+                return;
+            }
+
+            log(`Exporting data to Google Sheets tab "${sheetName}"...`, 'info');
+            exportToSheetsBtn.disabled = true;
+            exportToSheetsBtn.innerText = 'Exporting...';
+
+            try {
+                const response = await fetch(`${serverUrl}/export-sheets`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sheetName,
+                        cleanData: dataToExport
+                    })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    if (result.spreadsheetUrl) {
+                        log(`${result.message} <a href="${result.spreadsheetUrl}" target="_blank" style="color: #60a5fa; text-decoration: underline; font-weight: bold;">Open Sheet 🔗</a>`, 'success', true);
+                        alert(`${result.message}\n\nSpreadsheet URL:\n${result.spreadsheetUrl}`);
+                    } else {
+                        log(result.message, 'success');
+                        alert(result.message);
+                    }
+                } else {
+                    log(`Export failed: ${result.error}`, 'error');
+                    alert(`Export failed: ${result.error}`);
+                }
+            } catch (err) {
+                log(`Export network error: ${err.message}`, 'error');
+                alert(`Export network error: ${err.message}`);
+            } finally {
+                exportToSheetsBtn.disabled = false;
+                exportToSheetsBtn.innerText = 'Export into sheets';
+            }
+        });
+
+        // Close Modal Events
+        const closeScrapeModal = () => {
+            scrapeModal.style.display = 'none';
+        };
+        closeScrapeModalBtn.addEventListener('click', closeScrapeModal);
+        scrapeModal.addEventListener('click', (e) => {
+            if (e.target === scrapeModal) {
+                closeScrapeModal();
+            }
+        });
+
+        // Register Button Click
+        scrapeBtn.addEventListener('click', runScraper);
+        scrapeRefreshBtn.addEventListener('click', runScraper);
+
+        // ==========================================
+        // DOM Management & Accessibility Workflow UI
+        // ==========================================
+        const domManagementBtn = document.getElementById('domManagementBtn');
+        const domModal = document.getElementById('domModal');
+        const closeDomModalBtn = document.getElementById('closeDomModalBtn');
+        const domWorkflowSteps = document.getElementById('domWorkflowSteps');
+        const domActionTitle = document.getElementById('domActionTitle');
+        const domParamsInput = document.getElementById('domParamsInput');
+        const runDomActionBtn = document.getElementById('runDomActionBtn');
+        const domOutputViewer = document.getElementById('domOutputViewer');
+        const clearDomOutputBtn = document.getElementById('clearDomOutputBtn');
+        const domStatusTimestamp = document.getElementById('domStatusTimestamp');
+
+        let selectedDomAction = 'captureDomSnapshot';
+        let tabSwitcherInterval = null;
+
+        // Open Modal
+        domManagementBtn.addEventListener('click', () => {
+            domModal.style.display = 'flex';
+            loadTabSwitcher();
+            tabSwitcherInterval = setInterval(loadTabSwitcher, 1500);
+        });
+
+        // Close Modal
+        const closeDomModal = () => {
+            domModal.style.display = 'none';
+            if (tabSwitcherInterval) {
+                clearInterval(tabSwitcherInterval);
+                tabSwitcherInterval = null;
+            }
+        };
+        closeDomModalBtn.addEventListener('click', closeDomModal);
+        domModal.addEventListener('click', (e) => {
+            if (e.target === domModal) closeDomModal();
+        });
+
+        const refreshTabsBtn = document.getElementById('refreshTabsBtn');
+        const activeTabsListContainer = document.getElementById('activeTabsListContainer');
+
+        async function loadTabSwitcher() {
+            if (!activeTabsListContainer) return;
+            activeTabsListContainer.innerHTML = '<span style="font-size:0.75rem; color:var(--text-muted); padding:0.25rem;">Loading tabs...</span>';
+            try {
+                const response = await fetch(`${serverUrl}/list-tabs`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const result = await response.json();
+                if (result.success && result.tabs && result.tabs.length > 0) {
+                    activeTabsListContainer.innerHTML = '';
+                    result.tabs.forEach(tab => {
+                        const tabBtn = document.createElement('button');
+                        tabBtn.style.padding = '0.4rem 0.75rem';
+                        tabBtn.style.fontSize = '0.75rem';
+                        tabBtn.style.border = '1px solid';
+                        tabBtn.style.borderRadius = '6px';
+                        tabBtn.style.cursor = 'pointer';
+                        tabBtn.style.display = 'flex';
+                        tabBtn.style.flexDirection = 'column';
+                        tabBtn.style.gap = '0.15rem';
+                        tabBtn.style.textAlign = 'left';
+                        tabBtn.style.minWidth = '160px';
+                        tabBtn.style.maxWidth = '240px';
+                        tabBtn.style.overflow = 'hidden';
+                        tabBtn.style.textOverflow = 'ellipsis';
+                        tabBtn.style.whiteSpace = 'nowrap';
+                        tabBtn.style.background = tab.isActive ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255,255,255,0.02)';
+                        tabBtn.style.borderColor = tab.isActive ? '#818cf8' : 'var(--border-color)';
+                        tabBtn.style.color = tab.isActive ? '#a5b4fc' : 'var(--text-muted)';
+
+                        const titleSpan = document.createElement('span');
+                        titleSpan.style.fontWeight = 'bold';
+                        titleSpan.style.color = tab.isActive ? '#fff' : 'var(--text-main)';
+                        titleSpan.innerText = tab.title;
+
+                        const urlSpan = document.createElement('span');
+                        urlSpan.style.fontSize = '0.65rem';
+                        urlSpan.style.color = 'var(--text-muted)';
+                        urlSpan.innerText = tab.url;
+
+                        tabBtn.appendChild(titleSpan);
+                        tabBtn.appendChild(urlSpan);
+
+                        tabBtn.addEventListener('click', async () => {
+                            tabBtn.disabled = true;
+                            titleSpan.innerText = 'Switching...';
+                            try {
+                                const switchResponse = await fetch(`${serverUrl}/switch-tab`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ index: tab.index })
+                                });
+                                const switchResult = await switchResponse.json();
+                                if (switchResult.success) {
+                                    log(`[Tabs] ${switchResult.message}`, 'success');
+                                }
+                            } catch (e) {
+                                log(`[Tabs] Failed to switch tab: ${e.message}`, 'error');
+                            } finally {
+                                loadTabSwitcher();
+                            }
+                        });
+
+                        activeTabsListContainer.appendChild(tabBtn);
+                    });
+                } else {
+                    activeTabsListContainer.innerHTML = '<span style="font-size:0.75rem; color:var(--text-muted); padding:0.25rem;">No active tabs detected.</span>';
+                }
+            } catch (err) {
+                activeTabsListContainer.innerHTML = `<span style="font-size:0.75rem; color:#f87171; padding:0.25rem;">Error: ${err.message}</span>`;
+            }
+        }
+
+        if (refreshTabsBtn) {
+            refreshTabsBtn.addEventListener('click', loadTabSwitcher);
+        }
+
+        // Step buttons selection
+        if (domWorkflowSteps) {
+            domWorkflowSteps.addEventListener('click', (e) => {
+                const btn = e.target.closest('button[data-action]');
+                if (!btn) return;
+
+                // Update active button styling
+                domWorkflowSteps.querySelectorAll('button').forEach(b => {
+                    b.style.background = 'none';
+                    b.style.borderColor = 'var(--border-color)';
+                    b.style.color = 'var(--text-main)';
+                });
+
+                btn.style.background = 'rgba(6, 182, 212, 0.2)';
+                btn.style.borderColor = '#06b6d4';
+                btn.style.color = '#67e8f9';
+
+                selectedDomAction = btn.getAttribute('data-action');
+                domActionTitle.innerText = `Action: ${btn.innerText.trim()}`;
+            });
+        }
+
+        const fillSampleIntentBtn = document.getElementById('fillSampleIntentBtn');
+        const proceedActionBtn = document.getElementById('proceedActionBtn');
+
+        // Paste Sample Intent Template
+        if (fillSampleIntentBtn) {
+            fillSampleIntentBtn.addEventListener('click', () => {
+                const sampleTemplates = [
+                    '{\n  "index": 1,\n  "action": "click"\n}',
+                    '{\n  "role": "button",\n  "name": "Google Search",\n  "action": "click"\n}',
+                    '{\n  "role": "textbox",\n  "name": "Search",\n  "action": "fill",\n  "value": "Playwright automation"\n}',
+                    '{\n  "index": 3,\n  "role": "button",\n  "name": "Buy Now",\n  "selector": "#buy-now-button",\n  "action": "click"\n}'
+                ];
+                
+                // Cycle through templates or set the Buy Now / Index template
+                domParamsInput.value = '{\n  "index": 3,\n  "role": "button",\n  "name": "Buy Now",\n  "selector": "#buy-now-button",\n  "action": "click"\n}';
+                log('[DOM_Management] Pasted Intent template into parameters box.', 'info');
+            });
+        }
+
+        // Proceed Button (Execute Click/Fill on Live Browser)
+        if (proceedActionBtn) {
+            proceedActionBtn.addEventListener('click', async () => {
+                const rawParam = domParamsInput.value.trim();
+                let intentPayload = {};
+
+                if (rawParam) {
+                    try {
+                        intentPayload = JSON.parse(rawParam);
+                    } catch (e) {
+                        intentPayload = { name: rawParam };
+                    }
+                } else {
+                    intentPayload = { index: 1, action: "click" };
+                }
+
+                log(`[DOM_Management: Proceed] Executing live action for intent: ${JSON.stringify(intentPayload)}...`, 'info');
+                domStatusTimestamp.innerText = `Proceeding with action...`;
+                proceedActionBtn.disabled = true;
+                proceedActionBtn.innerText = 'Executing...';
+
+                try {
+                    const response = await fetch(`${serverUrl}/dom-action`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'runClickOrFill',
+                            params: intentPayload
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (data.success && data.result) {
+                        domOutputViewer.value = JSON.stringify(data.result, null, 2);
+                        domStatusTimestamp.innerText = `Executed (${new Date().toLocaleTimeString()})`;
+                        log(`[DOM_Management] ${data.result.message || 'Action executed successfully!'}`, 'success');
+
+                        if (data.screenshot) {
+                            browserPreview.src = data.screenshot;
+                            browserPreview.style.display = 'block';
+                            previewPlaceholder.style.display = 'none';
+                        }
+                    } else {
+                        domOutputViewer.value = JSON.stringify(data, null, 2);
+                        domStatusTimestamp.innerText = `Action Failed / Fallback Needed`;
+                        log(`[DOM_Management] Action execution error: ${data.error || data.result?.message || 'Failed to execute'}`, 'error');
+                    }
+                } catch (err) {
+                    domOutputViewer.value = `Network Error: ${err.message}`;
+                    domStatusTimestamp.innerText = `Network Error (${err.message})`;
+                    log(`[DOM_Management] Network error: ${err.message}`, 'error');
+                } finally {
+                    proceedActionBtn.disabled = false;
+                    proceedActionBtn.innerHTML = `
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.35rem;">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        Proceed (Execute on Live Page)
+                    `;
+                }
+            });
+        }
+
+        // Execute step on live browser
+        runDomActionBtn.addEventListener('click', async () => {
+            const params = domParamsInput.value.trim();
+            log(`[DOM_Management] Running action "${selectedDomAction}" on live browser...`, 'info');
+            domStatusTimestamp.innerText = `Executing ${selectedDomAction}...`;
+            runDomActionBtn.disabled = true;
+            runDomActionBtn.innerText = 'Running...';
+
+            try {
+                const response = await fetch(`${serverUrl}/dom-action`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: selectedDomAction,
+                        params: params || null
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    domOutputViewer.value = JSON.stringify(data.result, null, 2);
+                    domStatusTimestamp.innerText = `Success (${new Date().toLocaleTimeString()})`;
+                    log(`[DOM_Management] Action "${selectedDomAction}" executed successfully!`, 'success');
+
+                    // If a screenshot was returned, update live preview
+                    if (data.screenshot) {
+                        browserPreview.src = data.screenshot;
+                        browserPreview.style.display = 'block';
+                        previewPlaceholder.style.display = 'none';
+                    }
+                } else {
+                    domOutputViewer.value = `Error: ${data.error}`;
+                    domStatusTimestamp.innerText = `Error: ${data.error}`;
+                    log(`[DOM_Management] Execution failed: ${data.error}`, 'error');
+                }
+            } catch (err) {
+                domOutputViewer.value = `Network/Server Error: ${err.message}`;
+                domStatusTimestamp.innerText = `Failed (${err.message})`;
+                log(`[DOM_Management] Network error: ${err.message}`, 'error');
+            } finally {
+                runDomActionBtn.disabled = false;
+                runDomActionBtn.innerHTML = `
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 0.25rem;">
+                        <polygon points="5 3 19 12 5 21 5 3" />
+                    </svg>
+                    Execute Step
+                `;
+            }
+        });
+    </script>
+</body>
+
+</html>

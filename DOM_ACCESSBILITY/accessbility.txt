@@ -1,0 +1,31 @@
+// Step 2: Extract accessibility roles
+// Filters the raw snapshot down to elements worth acting on —
+// drops decorative/structural nodes, keeps anything with a usable
+// name OR a real DOM selector hook (some real elements have empty names).
+
+const ACTIONABLE_ROLES = new Set([
+  "button",
+  "link",
+  "textbox",
+  "searchbox",
+  "combobox",
+  "checkbox",
+  "radio",
+  "radiogroup"
+]);
+
+function extractInteractive(snapshot) {
+  return snapshot.children.filter(node => {
+    const isActionable = ACTIONABLE_ROLES.has(node.role);
+    const hasName = node.name && node.name.trim().length > 0;
+    const hasSelector = Boolean(node.selector);
+
+    // Keep if it's an actionable role AND (it has a name OR a selector).
+    // This preserves unlabeled-but-real elements like bundle checkboxes.
+    return isActionable && (hasName || hasSelector);
+  });
+}
+
+// Usage:
+const elements = extractInteractive(snapshot);
+console.log(JSON.stringify(elements, null, 2));

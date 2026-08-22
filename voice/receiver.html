@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agora Headless Receiver</title>
+    <!-- Import Agora Web SDK CDN -->
+    <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.22.0.js"></script>
+</head>
+<body style="background-color: #0b0f19; color: #fff; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0;">
+    <div style="text-align: center;">
+        <h3 style="color: #10B981;">ARGUS WebMCP</h3>
+        <p>Agora Headless Receiver Client</p>
+        <div id="status" style="font-size: 0.90rem; color: #9CA3AF;">Initializing client...</div>
+    </div>
+
+    <script>
+        const APP_ID = "a1cf13a1338444508e9b76b94be084b4";
+        const CHANNEL = "demo-channel";
+        const TOKEN = "007eJxTYFjhYl1sulBv931FlS4Dl7b3s5df4lPmd150Y6n6D5kyNk8FhkTD5DRD40RDY2MLExMTUwOLVMskc7MkS5OkVAMLkySTj/dbsxoCGRlMv7owMDEwgiGIz8yQklrEABUCCbAwGBoYGAIAc2Ye9A==";
+
+        const statusDiv = document.getElementById('status');
+        let client = null;
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
+
+        function logStatus(msg) {
+            console.log(`[Agora Receiver UI] ${msg}`);
+            statusDiv.innerText = msg;
+        }
+
+        async function initReceiver() {
+            try {
+                // 1. Create client
+                client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+                logStatus("Client created. Joining channel...");
+
+                // 2. Setup subscription listeners
+                client.on("user-published", async (user, mediaType) => {
+                    if (mediaType === "audio") {
+                        logStatus(`User ${user.uid} published audio. Subscribing...`);
+                        try {
+                            await client.subscribe(user, mediaType);
+                            logStatus(`Subscribed to user ${user.uid} audio. Starting recording...`);
+                            
+                            // Retrieve browser native MediaStreamTrack
+                            const audioTrack = user.audioTrack;
+                            const mediaStreamTrack = audioTrack.getMediaStreamTrack();
+                            const mediaStream = new MediaStream([mediaStreamTrack]);
+                            
+                            // Initialize recorder
+                            audioChunks = [];
+                            mediaRecorder = new MediaRecorder(mediaStream);
+                            
+                            mediaRecorder.addEventListener('dataavailable', event => {
+                                audioChunks.push(event.data);
+                            });
+                            
+                            mediaRecorder.addEventListener('stop', async () => {
+                                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                                logStatus("Audio recording stopped. Sending to server for transcription...");
+                                
+                                const reader = new FileReader();
+                                reader.readAsDataURL(audioBlob);
+                                reader.onloadend = async () => {
+                                    const base64Data = reader.result.split(',')[1];
+                                    try {
+                                        const response = await fetch('/api/speech-to-text', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ audioData: base64Data, mimeType: 'audio/webm' })
+                                        });
+                                        const result = await response.json();
+                                        logStatus(`Speech-To-Text completed! Result: ${result.text}`);
+                                    } catch (err) {
+                                        logStatus(`Failed to send audio to server: ${err.message}`);
+                                    }
+                                };
+                            });
+                            
+                            mediaRecorder.start();
+                            isRecording = true;
+                        } catch (subscribeError) {
+                            logStatus(`Failed to subscribe: ${subscribeError.message}`);
+                        }
+                    }
+                });
+
+                client.on("user-unpublished", async (user, mediaType) => {
+                    if (mediaType === "audio") {
+                        logStatus(`User ${user.uid} stopped audio. Stopping recording...`);
+                        if (mediaRecorder && isRecording) {
+                            mediaRecorder.stop();
+                            isRecording = false;
+                        }
+                    }
+                });
+
+                client.on("user-left", (user) => {
+                    logStatus(`User ${user.uid} left the channel.`);
+                    if (mediaRecorder && isRecording) {
+                        mediaRecorder.stop();
+                        isRecording = false;
+                    }
+                });
+
+                // 3. Fetch dynamic token from server
+                logStatus("Fetching dynamic token from server...");
+                const tokenRes = await fetch("http://localhost:2003/api/generate-token", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ channelName: CHANNEL, uid: 0 })
+                });
+                const tokenData = await tokenRes.json();
+                if (!tokenData.success || !tokenData.token) {
+                    throw new Error(tokenData.error || "Failed to retrieve dynamic token");
+                }
+
+                // 4. Join the channel
+                await client.join(APP_ID, CHANNEL, tokenData.token, null);
+                logStatus(`Successfully joined Agora channel: ${CHANNEL}`);
+            } catch (err) {
+                logStatus(`Error initializing receiver: ${err.message}`);
+            }
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', initReceiver);
+    </script>
+</body>
+</html>

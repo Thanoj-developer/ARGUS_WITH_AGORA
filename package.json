@@ -1,0 +1,23 @@
+{
+  "name": "playwright",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "thanoj",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "start": "node run_all.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.0"
+  },
+  "dependencies": {
+    "agora-rtc-sdk-ng": "^4.24.7",
+    "agora-token": "^2.0.5",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "openai": "^7.4.0"
+  }
+}
